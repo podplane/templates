@@ -1,0 +1,17 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "web.name" . }}-certificate
+  labels:
+    {{- include "web.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "web.name" . }}-certificate-secret
+  dnsNames:
+    - {{ include "web.name" . }}-service
+    - {{ printf "%s-service.%s" (include "web.name" .) .Release.Namespace | quote }}
+    - {{ printf "%s-service.%s.svc" (include "web.name" .) .Release.Namespace | quote }}
+    - {{ printf "%s-service.%s.svc.cluster.local" (include "web.name" .) .Release.Namespace | quote }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: system-selfsigned-clusterissuer

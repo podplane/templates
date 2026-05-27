@@ -1,0 +1,10 @@
+# Podplane <https://podplane.dev>
+# Copyright 2026 Nadrama Pty Ltd
+# SPDX-License-Identifier: Apache-2.0
+---
+image: "ghcr.io/podplane/hello:latest"
+hostname: ""
+path: /
+env: {}
+metrics:
+  http: true # enables Caddy http metrics - see https://caddyserver.com/docs/metrics for more
