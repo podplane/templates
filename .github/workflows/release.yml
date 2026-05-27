@@ -1,0 +1,148 @@
+# Podplane <https://podplane.dev>
+# Copyright 2026 Nadrama Pty Ltd
+# SPDX-License-Identifier: Apache-2.0
+#
+# Release workflow: publishes template Helm charts as OCI artifacts and attaches
+# a signed templates manifest to the GitHub Release.
+#
+# For tag vX.Y.Z (or vX.Y.Z-rcN for pre-releases), this:
+#   1. Reads manifests/templates.json as the checked-in development manifest.
+#   2. Packages each type=chart entry with Helm using VERSION=X.Y.Z.
+#   3. Pushes each packaged chart to GHCR as an OCI Helm chart.
+#   4. Resolves the OCI manifest digest for each chart.
+#   5. Renders templates_X.Y.Z.json with type=oci, url, version, and digest.
+#   6. Writes templates_X.Y.Z_checksums.txt (sha512) covering release assets
+#      and signs it keyless with cosign, producing a self-contained bundle.
+#   7. Creates a GitHub Release and uploads the manifest, checksums, and bundle.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive VERSION and pre-release flag
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ github.token }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+          crane auth login ghcr.io --username "${{ github.actor }}" --password "${{ github.token }}"
+
+      - name: Package and publish OCI charts
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          OCI_NAMESPACE="$(tr '[:upper:]' '[:lower:]' <<< "ghcr.io/${GITHUB_REPOSITORY}")"
+          mkdir -p dist/charts dist/release
+          jq -e '.templates.charts | all(.type == "chart")' manifests/templates.json >/dev/null
+
+          chart_count="$(jq '.templates.charts | length' manifests/templates.json)"
+          if [ "$chart_count" -eq 0 ]; then
+            echo "No template charts found in manifests/templates.json" >&2
+            exit 1
+          fi
+
+          release_charts='[]'
+          for i in $(seq 0 "$((chart_count - 1))"); do
+            name="$(jq -r ".templates.charts[$i].name" manifests/templates.json)"
+            path="$(jq -r ".templates.charts[$i].path" manifests/templates.json)"
+            chart_dir="$(realpath "manifests/${path}")"
+
+            helm package "$chart_dir" \
+              --version "$VERSION" \
+              --app-version "$VERSION" \
+              --destination dist/charts
+
+            archive="dist/charts/${name}-${VERSION}.tgz"
+            helm push "$archive" "oci://${OCI_NAMESPACE}"
+
+            tag="${VERSION//+/_}"
+            digest="$(crane digest "${OCI_NAMESPACE}/${name}:${tag}")"
+            url="oci://${OCI_NAMESPACE}/${name}"
+
+            release_charts="$(
+              jq \
+                --arg name "$name" \
+                --arg version "$VERSION" \
+                --arg url "$url" \
+                --arg digest "$digest" \
+                '. + [{
+                  name: $name,
+                  version: $version,
+                  type: "oci",
+                  url: $url,
+                  digest: $digest
+                }]' \
+                <<< "$release_charts"
+            )"
+          done
+
+          jq -n \
+            --arg version "$VERSION" \
+            --argjson charts "$release_charts" \
+            '{templates: {version: $version, charts: $charts}}' \
+            > "dist/release/templates_${VERSION}.json"
+
+          jq . "dist/release/templates_${VERSION}.json"
+
+      - name: Generate checksums file
+        working-directory: dist/release
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          sha512sum "templates_${VERSION}.json" | sort -k2 > "templates_${VERSION}_checksums.txt"
+          cat "templates_${VERSION}_checksums.txt"
+
+      - name: Sign checksums file with cosign
+        working-directory: dist/release
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cosign sign-blob \
+            --yes \
+            --bundle="templates_${VERSION}_checksums.txt.bundle" \
+            "templates_${VERSION}_checksums.txt"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/release/templates_*.json
+            dist/release/templates_*_checksums.txt
+            dist/release/templates_*_checksums.txt.bundle
+          generate_release_notes: true
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          fail_on_unmatched_files: true

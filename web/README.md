@@ -1,0 +1,42 @@
+# Podplane Web Template
+
+The `web` template deploys a HTTP web application behind the Podplane ingress stack.
+
+It creates:
+
+- a Deployment running the app container and Caddy sidecar
+- a ClusterIP Service on HTTPS port 443
+- a Gateway API HTTPRoute
+- a cert-manager Certificate for gateway-to-service TLS
+
+The application container should listen for plain HTTP on port 80. The Caddy sidecar terminates TLS and proxies traffic to the app.
+
+## Values
+
+| Value | Default | Description |
+| --- | --- | --- |
+| `image` | `ghcr.io/podplane/hello:latest` | App container image |
+| `hostname` | `""` | Optional external hostname for routing |
+| `path` | `/` | URL path prefix for routing |
+| `env` | `{}` | Non-secret environment variables for the app container |
+| `metrics.http` | `true` | Enable Caddy HTTP metrics |
+
+## Example
+
+```sh
+helm upgrade --install hello oci://ghcr.io/podplane/web \
+  --version 1.0.0 \
+  --set image=ghcr.io/podplane/hello:latest \
+  --set hostname=hello.example.com
+```
+
+Podplane normally installs this chart through:
+
+```sh
+podplane deploy web --name hello --image ghcr.io/podplane/hello:latest
+```
+
+## License
+
+Podplane is licensed under the Apache License, Version 2.0.
+Copyright 2026 Nadrama Pty Ltd.

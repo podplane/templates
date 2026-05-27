@@ -1,0 +1,13 @@
+{
+  "templates": {
+    "version": "dev",
+    "charts": [
+      {
+        "name": "web",
+        "version": "dev",
+        "type": "chart",
+        "path": "../web"
+      }
+    ]
+  }
+}
