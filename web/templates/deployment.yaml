@@ -54,7 +54,7 @@ spec:
               cpu: "200m"
               memory: "128Mi"
         - name: {{ include "web.name" . }}-caddy
-          image: "caddy"
+          image: "docker.io/library/caddy:2"
           ports:
             - containerPort: 443
             {{- if .Values.metrics }}
