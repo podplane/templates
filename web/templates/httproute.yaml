@@ -7,8 +7,8 @@ metadata:
     {{- include "web.labels" . | nindent 4 }}
 spec:
   parentRefs:
-    - name: system-traefik-gateway
-      namespace: system-traefik
+    - name: platform-traefik-gateway
+      namespace: platform-traefik
   {{- if .Values.hostname }}
   hostnames:
     - {{ .Values.hostname | quote }}
@@ -22,7 +22,7 @@ spec:
         - name: {{ include "web.name" . }}-service
           port: 443
 ---
-apiVersion: gateway.networking.k8s.io/v1alpha3
+apiVersion: gateway.networking.k8s.io/v1
 kind: BackendTLSPolicy
 metadata:
   name: {{ include "web.name" . }}-backend-tls-policy
@@ -37,5 +37,5 @@ spec:
     hostname: {{ printf "%s-service.%s.svc.cluster.local" (include "web.name" .) .Release.Namespace | quote }}
     caCertificateRefs:
       - group: "" # must be blank
-        name: system-selfsigned-ca-bundle
+        name: platform-selfsigned-ca-bundle
         kind: ConfigMap
