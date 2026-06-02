@@ -79,6 +79,7 @@ jobs:
           for i in $(seq 0 "$((chart_count - 1))"); do
             name="$(jq -r ".templates.charts[$i].name" manifests/templates.json)"
             path="$(jq -r ".templates.charts[$i].path" manifests/templates.json)"
+            dependencies="$(jq -c ".templates.charts[$i].dependencies // {}" manifests/templates.json)"
             chart_dir="$(realpath "manifests/${path}")"
 
             helm package "$chart_dir" \
@@ -99,12 +100,14 @@ jobs:
                 --arg version "$VERSION" \
                 --arg url "$url" \
                 --arg digest "$digest" \
+                --argjson dependencies "$dependencies" \
                 '. + [{
                   name: $name,
                   version: $version,
                   type: "oci",
                   url: $url,
-                  digest: $digest
+                  digest: $digest,
+                  dependencies: $dependencies
                 }]' \
                 <<< "$release_charts"
             )"

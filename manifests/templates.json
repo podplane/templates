@@ -6,7 +6,12 @@
         "name": "web",
         "version": "dev",
         "type": "chart",
-        "path": "../web"
+        "path": "../web",
+        "dependencies": {
+          "components": [
+            "traefik"
+          ]
+        }
       }
     ]
   }
