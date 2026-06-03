@@ -9,16 +9,17 @@ It creates:
 - a Gateway API HTTPRoute
 - a cert-manager Certificate for gateway-to-service TLS
 
-The application container should listen for plain HTTP on port 80. The Caddy sidecar terminates TLS and proxies traffic to the app.
+The application container should listen for plain HTTP on `app.port` (default: 80). The Caddy sidecar terminates TLS and proxies traffic to the app.
 
 ## Values
 
 | Value | Default | Description |
 | --- | --- | --- |
 | `image` | `ghcr.io/podplane/hello:latest` | App container image |
-| `hostname` | `""` | Optional external hostname for routing |
-| `path` | `/` | URL path prefix for routing |
+| `app.port` | `80` | Plain HTTP port exposed by the app container |
 | `env` | `{}` | Non-secret environment variables for the app container |
+| `route.hostname` | `""` | Optional external hostname for routing |
+| `route.path` | `/` | URL path prefix for routing |
 | `metrics.http` | `true` | Enable Caddy HTTP metrics |
 
 ## Example
@@ -27,7 +28,7 @@ The application container should listen for plain HTTP on port 80. The Caddy sid
 helm upgrade --install hello oci://ghcr.io/podplane/web \
   --version 1.0.0 \
   --set image=ghcr.io/podplane/hello:latest \
-  --set hostname=hello.example.com
+  --set route.hostname=hello.example.com
 ```
 
 Podplane normally installs this chart through:

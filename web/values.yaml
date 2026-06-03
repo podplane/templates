@@ -3,8 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 image: "ghcr.io/podplane/hello:latest"
-hostname: ""
-path: /
 env: {}
+app:
+  port: 80
+route:
+  hostname: ""
+  path: /
 metrics:
   http: true # enables Caddy http metrics - see https://caddyserver.com/docs/metrics for more

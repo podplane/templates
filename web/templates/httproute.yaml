@@ -9,15 +9,15 @@ spec:
   parentRefs:
     - name: platform-traefik-gateway
       namespace: platform-traefik
-  {{- if .Values.hostname }}
+  {{- if .Values.route.hostname }}
   hostnames:
-    - {{ .Values.hostname | quote }}
+    - {{ .Values.route.hostname | quote }}
   {{- end }}
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ .Values.path | quote }}
+            value: {{ .Values.route.path | quote }}
       backendRefs:
         - name: {{ include "web.name" . }}-service
           port: 443

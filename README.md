@@ -4,6 +4,8 @@ This repository contains the Helm charts for all Podplane app templates.
 
 App templates are opinionated Helm charts that make it easy to deploy common workload types via `podplane deploy`.
 
+Each template chart must include a `values.schema.json` file. Podplane uses the schema as the template values contract, including to validate whether common ergonomic deploy flags such as `--hostname` and `--path` are supported by a template.
+
 ## Templates Manifest
 
 The checked-in [`manifests/templates.json`](./manifests/templates.json) file is a development manifest. It points at local unpacked Helm chart directories with `type: "chart"`.

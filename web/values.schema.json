@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "type": "string",
+      "description": "App container image"
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Plain HTTP port exposed by the app container"
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "description": "Non-secret environment variables for the app container",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "description": "Optional external hostname for routing"
+        },
+        "path": {
+          "type": "string",
+          "description": "URL path prefix for routing"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "http": {
+          "type": "boolean",
+          "description": "Enable Caddy HTTP metrics"
+        }
+      }
+    }
+  }
+}
