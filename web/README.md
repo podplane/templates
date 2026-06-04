@@ -37,6 +37,8 @@ Podplane normally installs this chart through:
 podplane deploy web --name hello --image ghcr.io/podplane/hello:latest
 ```
 
+When `route.hostname` is set, Helm prints the external app URL after install or upgrade.
+
 ## License
 
 Podplane is licensed under the Apache License, Version 2.0.
