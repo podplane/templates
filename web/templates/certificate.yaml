@@ -14,4 +14,4 @@ spec:
     - {{ printf "%s-service.%s.svc.cluster.local" (include "web.name" .) .Release.Namespace | quote }}
   issuerRef:
     kind: ClusterIssuer
-    name: platform-selfsigned-clusterissuer
+    name: platform-service-certificate-clusterissuer
