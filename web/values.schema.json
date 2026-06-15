@@ -37,6 +37,12 @@
         "path": {
           "type": "string",
           "description": "URL path prefix for routing"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "External HTTPS port for the browser-facing route URL"
         }
       }
     },

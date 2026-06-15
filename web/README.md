@@ -20,6 +20,7 @@ The application container should listen for plain HTTP on `app.port` (default: 8
 | `env` | `{}` | Non-secret environment variables for the app container |
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
+| `route.port` | `443` | External HTTPS port for the browser-facing route URL |
 | `metrics.http` | `true` | Enable Caddy HTTP metrics |
 
 ## Example

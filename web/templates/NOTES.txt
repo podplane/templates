@@ -1,11 +1,12 @@
 {{- $hostname := .Values.route.hostname | default "" -}}
 {{- $path := .Values.route.path | default "/" -}}
+{{- $port := int (.Values.route.port | default 443) -}}
 {{- if and $path (not (hasPrefix "/" $path)) -}}
 {{- $path = printf "/%s" $path -}}
 {{- end -}}
 {{- if $hostname }}
 Your app is available at:
-  https://{{ $hostname }}{{ if ne $path "/" }}{{ $path }}{{ end }}
+  https://{{ $hostname }}{{ if ne $port 443 }}:{{ $port }}{{ end }}{{ if ne $path "/" }}{{ $path }}{{ end }}
 {{- else }}
 Your app is available on the platform gateway at path:
   {{ $path }}
