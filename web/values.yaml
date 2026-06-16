@@ -2,9 +2,11 @@
 # Copyright 2026 Nadrama Pty Ltd
 # SPDX-License-Identifier: Apache-2.0
 ---
-image: "ghcr.io/podplane/hello:latest"
-env: {}
+images:
+  app: "ghcr.io/podplane/hello:latest"
+  caddy: "docker.io/library/caddy:2"
 app:
+  env: {}
   port: 80
 route:
   hostname: ""

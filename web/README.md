@@ -15,9 +15,10 @@ The application container should listen for plain HTTP on `app.port` (default: 8
 
 | Value | Default | Description |
 | --- | --- | --- |
-| `image` | `ghcr.io/podplane/hello:latest` | App container image |
+| `images.app` | `ghcr.io/podplane/hello:latest` | App container image |
+| `images.caddy` | `docker.io/library/caddy:2` | Caddy sidecar image |
+| `app.env` | `{}` | Non-secret environment variables for the app container |
 | `app.port` | `80` | Plain HTTP port exposed by the app container |
-| `env` | `{}` | Non-secret environment variables for the app container |
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
@@ -28,7 +29,7 @@ The application container should listen for plain HTTP on `app.port` (default: 8
 ```sh
 helm upgrade --install hello oci://ghcr.io/podplane/web \
   --version 1.0.0 \
-  --set image=ghcr.io/podplane/hello:latest \
+  --set images.app=ghcr.io/podplane/hello:latest \
   --set route.hostname=hello.example.com
 ```
 

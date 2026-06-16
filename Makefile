@@ -8,7 +8,7 @@ YAML_FILES := $(shell find . -path './.git' -prune -o -path '*/templates/*.yaml'
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup fmt check lint validate precommit
+.PHONY: help setup fmt check lint validate update-manifests precommit
 
 help: ## Show available targets
 	@echo "Usage: make <target>"
@@ -73,3 +73,7 @@ precommit: ## Check formatting, lint charts, and validate renders
 	@$(MAKE) check
 	@$(MAKE) lint
 	@$(MAKE) validate
+
+update-manifests: ## Generate manifests/templates.json image metadata from chart values
+	@echo "Updating manifests/templates.json from template chart values..."
+	@go run scripts/manifests/main.go --output manifests/templates.json

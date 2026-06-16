@@ -38,8 +38,8 @@ spec:
     spec:
       containers:
         - name: {{ include "web.name" . }}-container
-          image: {{ .Values.image | quote }}
-          {{- with .Values.env }}
+          image: {{ .Values.images.app | quote }}
+          {{- with .Values.app.env }}
           env:
             {{- range $name, $value := . }}
             - name: {{ $name | quote }}
@@ -54,7 +54,7 @@ spec:
               cpu: "200m"
               memory: "128Mi"
         - name: {{ include "web.name" . }}-caddy
-          image: "docker.io/library/caddy:2"
+          image: {{ .Values.images.caddy | quote }}
           ports:
             - containerPort: 443
             {{- if .Values.metrics }}
