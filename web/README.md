@@ -8,6 +8,7 @@ It creates:
 - a ClusterIP Service on HTTPS port 443
 - a Gateway API HTTPRoute
 - a cert-manager Certificate for gateway-to-service TLS
+- optionally, Podplane `SecretProviderBinding` resources and read-only Secrets Store CSI volumes
 
 The application container should listen for plain HTTP on `app.port` (default: 80). The Caddy sidecar terminates TLS and proxies traffic to the app.
 
@@ -23,6 +24,18 @@ The application container should listen for plain HTTP on `app.port` (default: 8
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
 | `metrics.http` | `true` | Enable Caddy HTTP metrics |
+| `serviceAccount.create` | `true` | Create the workload service account when secret mounts are enabled |
+| `serviceAccount.name` | `""` | Service account name; defaults to the release-derived app name |
+| `secrets` | `[]` | SecretProviderBinding resources to render and mount |
+| `secrets[].bindingName` | required | SecretProviderBinding name; the operator generates a same-name SecretProviderClass |
+| `secrets[].providerName` | required | Cluster-local Podplane secrets provider name |
+| `secrets[].mountPath` | required | Read-only path where secret files are mounted in the app container |
+| `secrets[].items` | required | Podplane-managed secret items to mount |
+| `secrets[].items[].key` | required | Podplane logical secret key and backend identifier |
+| `secrets[].items[].path` | defaults to `key` | Mounted relative path inside `mountPath` |
+| `secrets[].syncToKubernetesSecrets` | `[]` | Advanced opt-in sync to native Kubernetes Secrets |
+| `secrets[].syncToKubernetesSecrets[].labels` | `{}` | Labels copied to the synced Kubernetes Secret |
+| `secrets[].syncToKubernetesSecrets[].annotations` | `{}` | Annotations copied to the synced Kubernetes Secret |
 
 ## Example
 

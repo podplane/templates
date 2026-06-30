@@ -10,7 +10,9 @@
         "dependencies": {
           "components": [
             "cert-manager",
+            "podplane-operator",
             "platform-trust",
+            "secrets-store-csi-driver",
             "traefik"
           ]
         }
@@ -19,20 +21,20 @@
     "images": [
       {
         "image": "docker.io/library/caddy:2",
-        "digest": "sha256:4679412ccd2114dca9f3017e2c460f76c9d8eb9e1850e72fb9ecda672e05c629",
-        "size": 23985139,
+        "digest": "sha256:98eb57d882ccd5213d1688764db10c1ca2c58a1ca3a6717a3411ad798f7a423a",
+        "size": 23916161,
         "platform": "linux/amd64",
-        "index": "sha256:cfeb0b281bc44a5a51fecde39e9e577c60d863c0b6196e6bbdf58fd00960887f",
+        "index": "sha256:af5fdcd76f2db5e4e974ee92f96ee8c0fc3edb55bd4ba5032547cbf3f65e486d",
         "templates": {
           "web": "caddy"
         }
       },
       {
         "image": "docker.io/library/caddy:2",
-        "digest": "sha256:ee97aec65dbdd1733fb12e719a392d2451fb06cc475f894ee45fb2e7d110db3e",
-        "size": 22793195,
+        "digest": "sha256:1172d4213087d3fc30bafc7ff2c2896180eb0c41ff7f75f315568fb36cabdcba",
+        "size": 22731608,
         "platform": "linux/arm64/v8",
-        "index": "sha256:cfeb0b281bc44a5a51fecde39e9e577c60d863c0b6196e6bbdf58fd00960887f",
+        "index": "sha256:af5fdcd76f2db5e4e974ee92f96ee8c0fc3edb55bd4ba5032547cbf3f65e486d",
         "templates": {
           "web": "caddy"
         }

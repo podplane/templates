@@ -65,6 +65,140 @@
           "description": "Enable Caddy HTTP metrics"
         }
       }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create the service account used by the workload when secret mounts are enabled"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "description": "Service account name; defaults to the release-derived app name"
+        }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "description": "SecretProviderBinding resources to render and mount with Secrets Store CSI",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["bindingName", "providerName", "mountPath", "items"],
+        "properties": {
+          "bindingName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+            "description": "SecretProviderBinding name; the generated SecretProviderClass uses the same name"
+          },
+          "providerName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+            "description": "Cluster-local Podplane secrets provider name"
+          },
+          "mountPath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^/.*",
+            "description": "Read-only path where mounted secret files are exposed inside the app container"
+          },
+          "items": {
+            "type": "array",
+            "description": "Podplane-managed secret items to mount",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["key"],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+                  "description": "Podplane logical secret key and backend identifier"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255,
+                  "description": "Optional mounted relative path inside mountPath; defaults to key"
+                }
+              }
+            }
+          },
+          "syncToKubernetesSecrets": {
+            "type": "array",
+            "description": "Advanced opt-in: sync mounted values into native Kubernetes Secrets, storing plaintext secret values in etcd",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["secretName", "data"],
+              "properties": {
+                "secretName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253,
+                  "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                  "description": "Kubernetes Secret name for synced secret data"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Kubernetes Secret type for synced secret data"
+                },
+                "labels": {
+                  "type": "object",
+                  "description": "Labels copied to the generated Kubernetes Secret",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "annotations": {
+                  "type": "object",
+                  "description": "Annotations copied to the generated Kubernetes Secret",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "data": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["fromKey", "key"],
+                    "properties": {
+                      "fromKey": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 63,
+                        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+                        "description": "Podplane key to sync from the binding"
+                      },
+                      "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 253,
+                        "pattern": "^[A-Za-z0-9._-]+$",
+                        "description": "Kubernetes Secret data key to write"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

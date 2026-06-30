@@ -36,6 +36,9 @@ spec:
       labels:
         {{- include "web.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if or .Values.secrets .Values.serviceAccount.name }}
+      serviceAccountName: {{ include "web.serviceAccountName" . }}
+      {{- end }}
       containers:
         - name: {{ include "web.name" . }}-container
           image: {{ .Values.images.app | quote }}
@@ -53,6 +56,14 @@ spec:
             limits:
               cpu: "200m"
               memory: "128Mi"
+          {{- if .Values.secrets }}
+          volumeMounts:
+            {{- range $index, $secret := .Values.secrets }}
+            - name: {{ printf "%s-secrets-store-%d" (include "web.name" $) $index }}
+              mountPath: {{ required (printf "secrets[%d].mountPath is required" $index) $secret.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+          {{- end }}
         - name: {{ include "web.name" . }}-caddy
           image: {{ .Values.images.caddy | quote }}
           ports:
@@ -75,6 +86,14 @@ spec:
             - name: {{ include "web.name" . }}-caddy-config-volume
               mountPath: /etc/caddy
       volumes:
+        {{- range $index, $secret := .Values.secrets }}
+        - name: {{ printf "%s-secrets-store-%d" (include "web.name" $) $index }}
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ required (printf "secrets[%d].bindingName is required" $index) $secret.bindingName | quote }}
+        {{- end }}
         - name: {{ include "web.name" . }}-caddy-tls-volume
           secret:
             secretName: {{ include "web.name" . }}-certificate-secret

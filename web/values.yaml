@@ -14,3 +14,7 @@ route:
   port: 443
 metrics:
   http: true # enables Caddy http metrics - see https://caddyserver.com/docs/metrics for more
+serviceAccount:
+  create: true
+  name: ""
+secrets: []
