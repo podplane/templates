@@ -7,7 +7,7 @@ images:
   caddy: "docker.io/library/caddy:2"
 app:
   env: {}
-  port: 80
+  port: 8080
 route:
   hostname: ""
   path: /

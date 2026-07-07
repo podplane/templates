@@ -10,7 +10,7 @@ It creates:
 - a cert-manager Certificate for gateway-to-service TLS
 - optionally, Podplane `SecretProviderBinding` resources and read-only Secrets Store CSI volumes
 
-The application container should listen for plain HTTP on `app.port` (default: 80). The Caddy sidecar terminates TLS and proxies traffic to the app.
+The application container should listen for plain HTTP on `app.port` (default: 8080). The Caddy sidecar terminates TLS and proxies traffic to the app.
 
 ## Values
 
@@ -19,7 +19,7 @@ The application container should listen for plain HTTP on `app.port` (default: 8
 | `images.app` | `ghcr.io/podplane/hello:latest` | App container image |
 | `images.caddy` | `docker.io/library/caddy:2` | Caddy sidecar image |
 | `app.env` | `{}` | Non-secret environment variables for the app container |
-| `app.port` | `80` | Plain HTTP port exposed by the app container |
+| `app.port` | `8080` | Plain HTTP port exposed by the app container |
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
