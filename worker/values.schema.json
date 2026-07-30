@@ -1,0 +1,704 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "images",
+    "app",
+    "resources",
+    "probes",
+    "podSecurityContext",
+    "containerSecurityContext",
+    "workVolume",
+    "imageVolumes",
+    "clientCertificate",
+    "networkPolicy",
+    "serviceAccount",
+    "podAnnotations",
+    "podLabels",
+    "secrets"
+  ],
+  "properties": {
+    "images": {
+      "type": "object",
+      "description": "Container and OCI volume images, keyed by logical name",
+      "required": [
+        "app"
+      ],
+      "properties": {
+        "app": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Worker container image"
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "replicas",
+        "strategy",
+        "command",
+        "args",
+        "env",
+        "terminationGracePeriodSeconds"
+      ],
+      "properties": {
+        "replicas": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of worker replicas"
+        },
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "Recreate",
+            "RollingUpdate"
+          ],
+          "description": "Deployment update strategy; Recreate avoids rollout overlap"
+        },
+        "command": {
+          "type": "array",
+          "description": "Optional worker container entrypoint override",
+          "items": {
+            "type": "string"
+          }
+        },
+        "args": {
+          "type": "array",
+          "description": "Optional worker container arguments override",
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "type": "object",
+          "description": "Non-secret environment variables for the worker container",
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "terminationGracePeriodSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pod shutdown grace period"
+        }
+      }
+    },
+    "resources": {
+      "$ref": "#/definitions/resources"
+    },
+    "probes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "liveness",
+        "readiness",
+        "startup"
+      ],
+      "properties": {
+        "liveness": {
+          "$ref": "#/definitions/probe"
+        },
+        "readiness": {
+          "$ref": "#/definitions/probe"
+        },
+        "startup": {
+          "$ref": "#/definitions/probe"
+        }
+      }
+    },
+    "podSecurityContext": {
+      "$ref": "#/definitions/podSecurityContext"
+    },
+    "containerSecurityContext": {
+      "$ref": "#/definitions/containerSecurityContext"
+    },
+    "workVolume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "mountPath",
+        "medium",
+        "sizeLimit"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Mount a writable emptyDir temporary work volume"
+        },
+        "mountPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^/.*",
+          "description": "Absolute worker container path for temporary work"
+        },
+        "medium": {
+          "type": "string",
+          "enum": [
+            "",
+            "Memory"
+          ],
+          "description": "Optional emptyDir storage medium"
+        },
+        "sizeLimit": {
+          "type": "string",
+          "description": "Optional emptyDir size limit as a Kubernetes quantity"
+        }
+      }
+    },
+    "imageVolumes": {
+      "type": "array",
+      "description": "Read-only Kubernetes image volumes containing separately versioned OCI content",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "imageKey",
+          "mountPath"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+            "description": "Kubernetes volume name"
+          },
+          "imageKey": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Key under images containing the OCI image reference"
+          },
+          "mountPath": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "pattern": "^/.*",
+            "description": "Absolute read-only mount path in the worker container"
+          },
+          "pullPolicy": {
+            "type": "string",
+            "enum": [
+              "Always",
+              "IfNotPresent",
+              "Never"
+            ],
+            "description": "OCI image volume pull policy"
+          }
+        }
+      }
+    },
+    "clientCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "mode",
+        "dnsName",
+        "mountPath",
+        "issuerRef",
+        "csi",
+        "secret"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Issue and mount a client certificate for the worker"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "csi",
+            "secret"
+          ],
+          "description": "Issue a pod-local certificate with the cert-manager CSI driver or a persistent cert-manager Certificate Secret"
+        },
+        "dnsName": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+          "description": "The single DNS SAN identifying the worker client"
+        },
+        "mountPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^/.*",
+          "description": "Read-only path where certificate files are mounted"
+        },
+        "issuerRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "name"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "ClusterIssuer",
+                "Issuer"
+              ],
+              "description": "cert-manager issuer kind"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+              "description": "cert-manager issuer name"
+            }
+          }
+        },
+        "csi": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fsGroup"
+          ],
+          "properties": {
+            "fsGroup": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Numeric group granted read access to CSI-issued certificate files; must match the worker process group"
+            }
+          }
+        },
+        "secret": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+              "description": "Certificate Secret name in secret mode; defaults to a release-derived name"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dnsName": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "allowAllEgress"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Create a NetworkPolicy selecting worker pods"
+        },
+        "allowAllEgress": {
+          "type": "boolean",
+          "description": "Permit all outbound traffic; false creates default-deny egress"
+        }
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "create",
+        "name",
+        "annotations"
+      ],
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Create the service account used by the worker"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "description": "Service account name; defaults to the release-derived worker name"
+        },
+        "annotations": {
+          "$ref": "#/definitions/stringMap"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "create": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "podAnnotations": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "podLabels": {
+      "$ref": "#/definitions/stringMap"
+    },
+    "secrets": {
+      "type": "array",
+      "description": "SecretProviderBinding resources to render and mount with Secrets Store CSI",
+      "items": {
+        "$ref": "#/definitions/secret"
+      }
+    }
+  },
+  "definitions": {
+    "stringMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "resourceList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": {
+          "type": "string",
+          "minLength": 1
+        },
+        "memory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ephemeral-storage": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests",
+        "limits"
+      ],
+      "properties": {
+        "requests": {
+          "$ref": "#/definitions/resourceList"
+        },
+        "limits": {
+          "$ref": "#/definitions/resourceList"
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "command",
+        "initialDelaySeconds",
+        "periodSeconds",
+        "timeoutSeconds",
+        "successThreshold",
+        "failureThreshold"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "periodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "successThreshold": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "command": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "podSecurityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runAsNonRoot": {
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fsGroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fsGroupChangePolicy": {
+          "type": "string",
+          "enum": [
+            "Always",
+            "OnRootMismatch"
+          ]
+        },
+        "seccompProfile": {
+          "$ref": "#/definitions/seccompProfile"
+        }
+      }
+    },
+    "containerSecurityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "type": "boolean"
+        },
+        "privileged": {
+          "type": "boolean"
+        },
+        "readOnlyRootFilesystem": {
+          "type": "boolean"
+        },
+        "runAsNonRoot": {
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runAsGroup": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "add": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "drop": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "seccompProfile": {
+          "$ref": "#/definitions/seccompProfile"
+        }
+      }
+    },
+    "seccompProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "RuntimeDefault",
+            "Localhost",
+            "Unconfined"
+          ]
+        },
+        "localhostProfile": {
+          "type": "string"
+        }
+      }
+    },
+    "secret": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindingName",
+        "providerName",
+        "mountPath",
+        "items"
+      ],
+      "properties": {
+        "bindingName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+          "description": "SecretProviderBinding name; the generated SecretProviderClass uses the same name"
+        },
+        "providerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+          "description": "Cluster-local Podplane secrets provider name"
+        },
+        "mountPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^/.*",
+          "description": "Read-only path where mounted secret files are exposed inside the worker container"
+        },
+        "items": {
+          "type": "array",
+          "description": "Podplane-managed secret items to mount",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            }
+          }
+        },
+        "syncToKubernetesSecrets": {
+          "type": "array",
+          "description": "Advanced opt-in: sync mounted values into native Kubernetes Secrets",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "secretName",
+              "data"
+            ],
+            "properties": {
+              "secretName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253,
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+              },
+              "type": {
+                "type": "string"
+              },
+              "labels": {
+                "$ref": "#/definitions/stringMap"
+              },
+              "annotations": {
+                "$ref": "#/definitions/stringMap"
+              },
+              "data": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "fromKey",
+                    "key"
+                  ],
+                  "properties": {
+                    "fromKey": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "key": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253,
+                      "pattern": "^[A-Za-z0-9._-]+$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

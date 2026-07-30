@@ -1,0 +1,19 @@
+{{- if and .Values.clientCertificate.enabled (eq .Values.clientCertificate.mode "secret") }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "worker.name" . }}-client-certificate
+  labels:
+    {{- include "worker.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "worker.clientCertificateSecretName" . }}
+  dnsNames:
+    - {{ required "clientCertificate.dnsName is required when clientCertificate.enabled is true" .Values.clientCertificate.dnsName | quote }}
+  usages:
+    - digital signature
+    - client auth
+  issuerRef:
+    kind: {{ .Values.clientCertificate.issuerRef.kind }}
+    name: {{ .Values.clientCertificate.issuerRef.name }}
+{{- end }}

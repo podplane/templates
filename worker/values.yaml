@@ -1,0 +1,83 @@
+# Podplane <https://podplane.dev>
+# Copyright The Podplane Authors
+# SPDX-License-Identifier: Apache-2.0
+---
+images:
+  app: "ghcr.io/podplane/hello:latest"
+app:
+  replicas: 1
+  strategy: Recreate
+  command: []
+  args: []
+  env: {}
+  terminationGracePeriodSeconds: 30
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+probes:
+  liveness:
+    enabled: false
+    command: []
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  readiness:
+    enabled: false
+    command: []
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 3
+  startup:
+    enabled: false
+    command: []
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 1
+    successThreshold: 1
+    failureThreshold: 30
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+workVolume:
+  enabled: true
+  mountPath: /tmp
+  medium: ""
+  sizeLimit: ""
+imageVolumes: []
+clientCertificate:
+  enabled: false
+  mode: csi
+  dnsName: ""
+  mountPath: /var/run/secrets/podplane/client-certificate
+  issuerRef:
+    kind: ClusterIssuer
+    name: platform-service-certificate-clusterissuer
+  csi:
+    fsGroup: 65532
+  secret:
+    name: ""
+networkPolicy:
+  enabled: true
+  allowAllEgress: true
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+podAnnotations: {}
+podLabels: {}
+secrets: []

@@ -1,0 +1,139 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "worker.name" . }}-deployment
+  labels:
+    {{- include "worker.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "worker.selectorLabels" . | nindent 6 }}
+  replicas: {{ .Values.app.replicas }}
+  strategy:
+    type: {{ .Values.app.strategy }}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: {{ printf "%s-container" (include "worker.name" .) | quote }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "worker.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "worker.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ include "worker.name" . }}-container
+          image: {{ .Values.images.app | quote }}
+          {{- with .Values.app.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.app.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.app.env }}
+          env:
+            {{- range $name, $value := . }}
+            - name: {{ $name | quote }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            {{- include "worker.execProbe" .Values.probes.liveness | nindent 12 }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            {{- include "worker.execProbe" .Values.probes.readiness | nindent 12 }}
+          {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            {{- include "worker.execProbe" .Values.probes.startup | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.workVolume.enabled .Values.clientCertificate.enabled .Values.secrets .Values.imageVolumes }}
+          volumeMounts:
+            {{- if .Values.workVolume.enabled }}
+            - name: {{ include "worker.name" . }}-work
+              mountPath: {{ .Values.workVolume.mountPath | quote }}
+            {{- end }}
+            {{- if .Values.clientCertificate.enabled }}
+            - name: {{ include "worker.name" . }}-client-certificate
+              mountPath: {{ .Values.clientCertificate.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- range $index, $secret := .Values.secrets }}
+            - name: {{ printf "%s-secrets-store-%d" (include "worker.name" $) $index }}
+              mountPath: {{ required (printf "secrets[%d].mountPath is required" $index) $secret.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- range $index, $imageVolume := .Values.imageVolumes }}
+            - name: {{ required (printf "imageVolumes[%d].name is required" $index) $imageVolume.name | quote }}
+              mountPath: {{ required (printf "imageVolumes[%d].mountPath is required" $index) $imageVolume.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+          {{- end }}
+      {{- if or .Values.workVolume.enabled .Values.clientCertificate.enabled .Values.secrets .Values.imageVolumes }}
+      volumes:
+        {{- if .Values.workVolume.enabled }}
+        - name: {{ include "worker.name" . }}-work
+          emptyDir:{{ if and (not .Values.workVolume.medium) (not .Values.workVolume.sizeLimit) }} {}{{ end }}
+            {{- with .Values.workVolume.medium }}
+            medium: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.workVolume.sizeLimit }}
+            sizeLimit: {{ . | quote }}
+            {{- end }}
+        {{- end }}
+        {{- if .Values.clientCertificate.enabled }}
+        - name: {{ include "worker.name" . }}-client-certificate
+          {{- if eq .Values.clientCertificate.mode "csi" }}
+          csi:
+            driver: csi.cert-manager.io
+            readOnly: true
+            volumeAttributes:
+              csi.cert-manager.io/issuer-name: {{ .Values.clientCertificate.issuerRef.name | quote }}
+              csi.cert-manager.io/issuer-kind: {{ .Values.clientCertificate.issuerRef.kind | quote }}
+              csi.cert-manager.io/dns-names: {{ .Values.clientCertificate.dnsName | quote }}
+              csi.cert-manager.io/key-usages: "digital signature,client auth"
+              csi.cert-manager.io/certificate-file: tls.crt
+              csi.cert-manager.io/privatekey-file: tls.key
+              csi.cert-manager.io/ca-file: ca.crt
+              csi.cert-manager.io/fs-group: {{ .Values.clientCertificate.csi.fsGroup | quote }}
+          {{- else }}
+          secret:
+            secretName: {{ include "worker.clientCertificateSecretName" . }}
+          {{- end }}
+        {{- end }}
+        {{- range $index, $secret := .Values.secrets }}
+        - name: {{ printf "%s-secrets-store-%d" (include "worker.name" $) $index }}
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ required (printf "secrets[%d].bindingName is required" $index) $secret.bindingName | quote }}
+        {{- end }}
+        {{- range $index, $imageVolume := .Values.imageVolumes }}
+        {{- $imageKey := required (printf "imageVolumes[%d].imageKey is required" $index) $imageVolume.imageKey }}
+        {{- $image := index $.Values.images $imageKey }}
+        {{- if not $image }}
+        {{- fail (printf "imageVolumes[%d].imageKey %q does not exist under images" $index $imageKey) }}
+        {{- end }}
+        - name: {{ required (printf "imageVolumes[%d].name is required" $index) $imageVolume.name | quote }}
+          image:
+            reference: {{ $image | quote }}
+            pullPolicy: {{ default "IfNotPresent" $imageVolume.pullPolicy }}
+        {{- end }}
+      {{- end }}
