@@ -46,6 +46,10 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- printf "%s-client-certificate-secret" (include "web.name" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{- define "web.clientCertificateDNSName" -}}
+{{- printf "%s.%s" (include "web.name" .) .Release.Namespace -}}
+{{- end -}}
+
 {{- define "web.primaryPort" -}}
 {{- if kindIs "slice" .Values.app.port -}}
 {{- index .Values.app.port 0 -}}

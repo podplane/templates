@@ -75,7 +75,7 @@ The worker can use environment variables or arguments to locate files within the
 
 ## Client certificate
 
-When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. The default issuer is Podplane's cluster self-signed service issuer. For example, a release named `nadrama-worker` receives the client identity `nadrama-worker`.
+When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one namespace-qualified, release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. The default issuer is Podplane's cluster self-signed service issuer. For example, a release named `email-worker` in the `production` namespace receives the client identity `email-worker.production`.
 
 By default, the template uses `csi.cert-manager.io`, giving every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. Setting `certificates.secrets=true` instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both approaches renew certificates, so long-running applications must reload mounted TLS material after rotation. CSI certificates require Podplane's cert-manager component, which includes the cert-manager CSI driver; certificate Secrets require cert-manager.
 

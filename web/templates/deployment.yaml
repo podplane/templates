@@ -144,7 +144,7 @@ spec:
             volumeAttributes:
               csi.cert-manager.io/issuer-name: "platform-service-certificate-clusterissuer"
               csi.cert-manager.io/issuer-kind: "ClusterIssuer"
-              csi.cert-manager.io/dns-names: {{ include "web.name" . | quote }}
+              csi.cert-manager.io/dns-names: {{ include "web.clientCertificateDNSName" . | quote }}
               csi.cert-manager.io/key-usages: "digital signature,client auth"
               csi.cert-manager.io/certificate-file: tls.crt
               csi.cert-manager.io/privatekey-file: tls.key

@@ -52,13 +52,13 @@ In the default `certificates.server=sidecar` mode, the public Service targets Ca
 
 ## Client certificate
 
-When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. For example, a release named `nadrama-api` receives the client identity `nadrama-api`. This is independent of serving-certificate delivery and service TLS handling.
+When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one namespace-qualified, release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. For example, a release named `example-api` in the `production` namespace receives the client identity `example-api.production`. This is independent of serving-certificate delivery and service TLS handling.
 
 Certificate handling is shared with the serving certificate. CSI gives every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. Setting `certificates.secrets=true` instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both approaches renew certificates, so long-running applications must reload mounted TLS material after rotation.
 
 ## Additional Service ports
 
-Set `app.port` to an array to expose additional Service ports. The first item remains the primary port used by Caddy or the public Service; every later port is exposed directly and receives a generated name such as `port-8082`. Additional ports are not referenced by the HTTPRoute. The app owns their protocol and any authentication or authorization.
+Set `app.port` to an array to expose additional Service ports. The first item remains the primary port used by Caddy or the public Service; every later port is exposed directly and receives a generated name such as `port-8082`. Additional ports cannot use the public Service port 443 and are not referenced by the HTTPRoute. The app owns their protocol and any authentication or authorization.
 
 For example, an app serving public TLS directly on port 8080 and internal mTLS on port 8082 uses:
 
@@ -82,6 +82,12 @@ Podplane normally installs this chart through:
 
 ```sh
 podplane deploy web --name hello --image ghcr.io/podplane/hello:latest
+```
+
+Use quoted Helm list syntax when setting multiple app ports through Podplane:
+
+```sh
+podplane deploy web --name hello --set 'app.port={8080,8082}'
 ```
 
 When `route.hostname` is set, Helm prints the external app URL after install or upgrade.

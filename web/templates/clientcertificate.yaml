@@ -13,7 +13,7 @@ metadata:
 spec:
   secretName: {{ include "web.clientCertificateSecretName" . }}
   dnsNames:
-    - {{ include "web.name" . | quote }}
+    - {{ include "web.clientCertificateDNSName" . | quote }}
   usages:
     - digital signature
     - client auth

@@ -16,6 +16,20 @@
             "traefik"
           ]
         }
+      },
+      {
+        "name": "worker",
+        "version": "dev",
+        "type": "chart",
+        "path": "../worker",
+        "dependencies": {
+          "components": [
+            "cert-manager",
+            "podplane-operator",
+            "platform-trust",
+            "secrets-store-csi-driver"
+          ]
+        }
       }
     ],
     "images": [
@@ -46,7 +60,8 @@
         "platform": "linux/amd64",
         "index": "sha256:7f472cc199b57f6b638f9f46212c1809e2510f5ea7c130722000b6f5586e17b0",
         "templates": {
-          "web": "app"
+          "web": "app",
+          "worker": "app"
         }
       },
       {
@@ -56,7 +71,8 @@
         "platform": "linux/arm64",
         "index": "sha256:7f472cc199b57f6b638f9f46212c1809e2510f5ea7c130722000b6f5586e17b0",
         "templates": {
-          "web": "app"
+          "web": "app",
+          "worker": "app"
         }
       }
     ]

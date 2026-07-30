@@ -13,7 +13,7 @@ metadata:
 spec:
   secretName: {{ include "worker.clientCertificateSecretName" . }}
   dnsNames:
-    - {{ include "worker.name" . | quote }}
+    - {{ include "worker.clientCertificateDNSName" . | quote }}
   usages:
     - digital signature
     - client auth
