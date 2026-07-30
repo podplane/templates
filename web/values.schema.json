@@ -29,10 +29,51 @@
           }
         },
         "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535,
-          "description": "Plain HTTP port exposed by the app container"
+          "description": "App port, or an array whose first port is primary and whose remaining ports are additionally exposed by the Service",
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            }
+          ]
+        }
+      }
+    },
+    "certificates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "server",
+        "client",
+        "secrets"
+      ],
+      "properties": {
+        "server": {
+          "type": "string",
+          "enum": [
+            "sidecar",
+            "direct"
+          ],
+          "description": "Terminate service TLS in the Caddy sidecar or directly in the app"
+        },
+        "client": {
+          "type": "boolean",
+          "description": "Issue and mount a client certificate for the web application"
+        },
+        "secrets": {
+          "type": "boolean",
+          "description": "Create cert-manager Certificate Secrets instead of using pod-local CSI certificates"
         }
       }
     },

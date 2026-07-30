@@ -11,6 +11,7 @@ app:
   args: []
   env: {}
   terminationGracePeriodSeconds: 30
+secrets: []
 resources:
   requests:
     cpu: "50m"
@@ -59,18 +60,6 @@ workVolume:
   medium: ""
   sizeLimit: ""
 imageVolumes: []
-clientCertificate:
-  enabled: false
-  mode: csi
-  dnsName: ""
-  mountPath: /var/run/secrets/podplane/client-certificate
-  issuerRef:
-    kind: ClusterIssuer
-    name: platform-service-certificate-clusterissuer
-  csi:
-    fsGroup: 65532
-  secret:
-    name: ""
 networkPolicy:
   enabled: true
   allowAllEgress: true
@@ -80,4 +69,6 @@ serviceAccount:
   annotations: {}
 podAnnotations: {}
 podLabels: {}
-secrets: []
+certificates:
+  client: false
+  secrets: false

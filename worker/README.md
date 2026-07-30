@@ -41,14 +41,6 @@ The default single replica uses the `Recreate` deployment strategy so an update 
 | `imageVolumes[].imageKey` | required | Key under `images` containing the OCI image reference |
 | `imageVolumes[].mountPath` | required | Absolute read-only mount path in the worker container |
 | `imageVolumes[].pullPolicy` | `IfNotPresent` | Image volume pull policy |
-| `clientCertificate.enabled` | `false` | Issue and mount a client certificate |
-| `clientCertificate.mode` | `csi` | Certificate storage mode (`csi` or `secret`) |
-| `clientCertificate.dnsName` | `""` | The certificate's single DNS SAN; required when enabled |
-| `clientCertificate.mountPath` | `/var/run/secrets/podplane/client-certificate` | Read-only certificate file mount path |
-| `clientCertificate.issuerRef.kind` | `ClusterIssuer` | cert-manager issuer kind |
-| `clientCertificate.issuerRef.name` | `platform-service-certificate-clusterissuer` | cert-manager issuer name |
-| `clientCertificate.csi.fsGroup` | `65532` | Numeric group granted read access to CSI-issued files; must match the worker process group |
-| `clientCertificate.secret.name` | `""` | Secret-mode Secret name; defaults to a release-derived name |
 | `networkPolicy.enabled` | `true` | Create a NetworkPolicy for the worker |
 | `networkPolicy.allowAllEgress` | `true` | Permit all outbound traffic; set false for default-deny egress |
 | `serviceAccount.create` | `true` | Create the worker ServiceAccount |
@@ -57,12 +49,10 @@ The default single replica uses the `Recreate` deployment strategy so an update 
 | `podAnnotations` | `{}` | Additional Pod annotations |
 | `podLabels` | `{}` | Additional Pod labels |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
+| `certificates.client` | `false` | Issue and mount a client certificate |
+| `certificates.secrets` | `false` | Create a cert-manager Certificate Secret instead of a pod-local CSI certificate |
 
 The `secrets` structure is the same as the Podplane `web` template. Secret mounts are read-only and non-secret configuration should use `app.env`.
-
-When `clientCertificate.enabled` is true, the template requests a certificate with the `client auth` extended key usage and exactly one configured DNS SAN. Both modes mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `clientCertificate.mountPath`. The default issuer is Podplane's cluster self-signed service issuer.
-
-The default `csi` mode uses `csi.cert-manager.io`, giving every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. `clientCertificate.csi.fsGroup` must match the worker process's numeric group so it can read the private key. The `secret` mode instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both modes renew certificates, so long-running applications must reload mounted TLS material after rotation. CSI mode requires Podplane's cert-manager component, which includes the cert-manager CSI driver; Secret mode requires cert-manager.
 
 Image volumes require a Kubernetes cluster with the `ImageVolume` feature available (which is available by default in every Podplane cluster). Each image must be supplied under `images`, then referenced by key:
 
@@ -82,6 +72,12 @@ imageVolumes:
 ```
 
 The worker can use environment variables or arguments to locate files within these mounts. Container runtimes may mount image volumes with execution disabled; applications that need to run mounted content should copy it into the writable work volume and invoke the copy. Content staging and executable-path selection are application concerns rather than template behavior.
+
+## Client certificate
+
+When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. The default issuer is Podplane's cluster self-signed service issuer. For example, a release named `nadrama-worker` receives the client identity `nadrama-worker`.
+
+By default, the template uses `csi.cert-manager.io`, giving every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. Setting `certificates.secrets=true` instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both approaches renew certificates, so long-running applications must reload mounted TLS material after rotation. CSI certificates require Podplane's cert-manager component, which includes the cert-manager CSI driver; certificate Secrets require cert-manager.
 
 ## Example
 

@@ -32,7 +32,10 @@ spec:
       serviceAccountName: {{ include "worker.serviceAccountName" . }}
       terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml (omit .Values.podSecurityContext "fsGroup") | nindent 8 }}
+        {{- if .Values.certificates.client }}
+        fsGroup: 65532
+        {{- end }}
       containers:
         - name: {{ include "worker.name" . }}-container
           image: {{ .Values.images.app | quote }}
@@ -67,15 +70,15 @@ spec:
           startupProbe:
             {{- include "worker.execProbe" .Values.probes.startup | nindent 12 }}
           {{- end }}
-          {{- if or .Values.workVolume.enabled .Values.clientCertificate.enabled .Values.secrets .Values.imageVolumes }}
+          {{- if or .Values.workVolume.enabled .Values.certificates.client .Values.secrets .Values.imageVolumes }}
           volumeMounts:
             {{- if .Values.workVolume.enabled }}
             - name: {{ include "worker.name" . }}-work
               mountPath: {{ .Values.workVolume.mountPath | quote }}
             {{- end }}
-            {{- if .Values.clientCertificate.enabled }}
+            {{- if .Values.certificates.client }}
             - name: {{ include "worker.name" . }}-client-certificate
-              mountPath: {{ .Values.clientCertificate.mountPath | quote }}
+              mountPath: /var/run/secrets/podplane/client-certificate
               readOnly: true
             {{- end }}
             {{- range $index, $secret := .Values.secrets }}
@@ -89,7 +92,7 @@ spec:
               readOnly: true
             {{- end }}
           {{- end }}
-      {{- if or .Values.workVolume.enabled .Values.clientCertificate.enabled .Values.secrets .Values.imageVolumes }}
+      {{- if or .Values.workVolume.enabled .Values.certificates.client .Values.secrets .Values.imageVolumes }}
       volumes:
         {{- if .Values.workVolume.enabled }}
         - name: {{ include "worker.name" . }}-work
@@ -101,21 +104,21 @@ spec:
             sizeLimit: {{ . | quote }}
             {{- end }}
         {{- end }}
-        {{- if .Values.clientCertificate.enabled }}
+        {{- if .Values.certificates.client }}
         - name: {{ include "worker.name" . }}-client-certificate
-          {{- if eq .Values.clientCertificate.mode "csi" }}
+          {{- if not .Values.certificates.secrets }}
           csi:
             driver: csi.cert-manager.io
             readOnly: true
             volumeAttributes:
-              csi.cert-manager.io/issuer-name: {{ .Values.clientCertificate.issuerRef.name | quote }}
-              csi.cert-manager.io/issuer-kind: {{ .Values.clientCertificate.issuerRef.kind | quote }}
-              csi.cert-manager.io/dns-names: {{ .Values.clientCertificate.dnsName | quote }}
+              csi.cert-manager.io/issuer-name: "platform-service-certificate-clusterissuer"
+              csi.cert-manager.io/issuer-kind: "ClusterIssuer"
+              csi.cert-manager.io/dns-names: {{ include "worker.name" . | quote }}
               csi.cert-manager.io/key-usages: "digital signature,client auth"
               csi.cert-manager.io/certificate-file: tls.crt
               csi.cert-manager.io/privatekey-file: tls.key
               csi.cert-manager.io/ca-file: ca.crt
-              csi.cert-manager.io/fs-group: {{ .Values.clientCertificate.csi.fsGroup | quote }}
+              csi.cert-manager.io/fs-group: "65532"
           {{- else }}
           secret:
             secretName: {{ include "worker.clientCertificateSecretName" . }}

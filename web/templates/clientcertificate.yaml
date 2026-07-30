@@ -7,13 +7,13 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "worker.name" . }}-client-certificate
+  name: {{ include "web.name" . }}-client-certificate
   labels:
-    {{- include "worker.labels" . | nindent 4 }}
+    {{- include "web.labels" . | nindent 4 }}
 spec:
-  secretName: {{ include "worker.clientCertificateSecretName" . }}
+  secretName: {{ include "web.clientCertificateSecretName" . }}
   dnsNames:
-    - {{ include "worker.name" . | quote }}
+    - {{ include "web.name" . | quote }}
   usages:
     - digital signature
     - client auth

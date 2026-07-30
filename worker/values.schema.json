@@ -11,7 +11,7 @@
     "containerSecurityContext",
     "workVolume",
     "imageVolumes",
-    "clientCertificate",
+    "certificates",
     "networkPolicy",
     "serviceAccount",
     "podAnnotations",
@@ -200,117 +200,23 @@
         }
       }
     },
-    "clientCertificate": {
+    "certificates": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "enabled",
-        "mode",
-        "dnsName",
-        "mountPath",
-        "issuerRef",
-        "csi",
-        "secret"
+        "client",
+        "secrets"
       ],
       "properties": {
-        "enabled": {
+        "client": {
           "type": "boolean",
           "description": "Issue and mount a client certificate for the worker"
         },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "csi",
-            "secret"
-          ],
-          "description": "Issue a pod-local certificate with the cert-manager CSI driver or a persistent cert-manager Certificate Secret"
-        },
-        "dnsName": {
-          "type": "string",
-          "maxLength": 253,
-          "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-          "description": "The single DNS SAN identifying the worker client"
-        },
-        "mountPath": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 255,
-          "pattern": "^/.*",
-          "description": "Read-only path where certificate files are mounted"
-        },
-        "issuerRef": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "kind",
-            "name"
-          ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [
-                "ClusterIssuer",
-                "Issuer"
-              ],
-              "description": "cert-manager issuer kind"
-            },
-            "name": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 253,
-              "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-              "description": "cert-manager issuer name"
-            }
-          }
-        },
-        "csi": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "fsGroup"
-          ],
-          "properties": {
-            "fsGroup": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Numeric group granted read access to CSI-issued certificate files; must match the worker process group"
-            }
-          }
-        },
-        "secret": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "name"
-          ],
-          "properties": {
-            "name": {
-              "type": "string",
-              "maxLength": 63,
-              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-              "description": "Certificate Secret name in secret mode; defaults to a release-derived name"
-            }
-          }
+        "secrets": {
+          "type": "boolean",
+          "description": "Create a cert-manager Certificate Secret instead of using a pod-local CSI certificate"
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "enabled": {
-                "const": true
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "dnsName": {
-                "minLength": 1
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "networkPolicy": {
       "type": "object",
@@ -501,10 +407,6 @@
           "minimum": 0
         },
         "runAsGroup": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "fsGroup": {
           "type": "integer",
           "minimum": 0
         },

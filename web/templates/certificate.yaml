@@ -2,6 +2,7 @@
 # Copyright The Podplane Authors
 # SPDX-License-Identifier: Apache-2.0
 
+{{- if .Values.certificates.secrets }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -10,12 +11,16 @@ metadata:
   labels:
     {{- include "web.labels" . | nindent 4 }}
 spec:
-  secretName: {{ include "web.name" . }}-certificate-secret
+  secretName: {{ include "web.serverCertificateSecretName" . }}
   dnsNames:
     - {{ include "web.name" . }}-service
     - {{ printf "%s-service.%s" (include "web.name" .) .Release.Namespace | quote }}
     - {{ printf "%s-service.%s.svc" (include "web.name" .) .Release.Namespace | quote }}
     - {{ printf "%s-service.%s.svc.cluster.local" (include "web.name" .) .Release.Namespace | quote }}
+  usages:
+    - digital signature
+    - server auth
   issuerRef:
     kind: ClusterIssuer
     name: platform-service-certificate-clusterissuer
+{{- end }}

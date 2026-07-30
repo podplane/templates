@@ -35,11 +35,7 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 
 {{- define "worker.clientCertificateSecretName" -}}
-{{- if .Values.clientCertificate.secret.name -}}
-{{- .Values.clientCertificate.secret.name -}}
-{{- else -}}
 {{- printf "%s-client-certificate-secret" (include "worker.name" .) | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
 {{- end -}}
 
 {{/* Render an enabled exec probe. */}}
