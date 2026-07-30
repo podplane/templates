@@ -57,4 +57,4 @@ When `route.hostname` is set, Helm prints the external app URL after install or 
 ## License
 
 Podplane is licensed under the Apache License, Version 2.0.
-Copyright 2026 Nadrama Pty Ltd.
+Copyright The Podplane Authors.

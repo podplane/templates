@@ -46,6 +46,6 @@ Learn more about Podplane at the official project website: [podplane.dev](https:
 ## License
 
 Podplane is licensed under the Apache License, Version 2.0.
-Copyright 2026 Nadrama Pty Ltd.
+Copyright The Podplane Authors.
 
 See the [LICENSE](./LICENSE) file for details.
