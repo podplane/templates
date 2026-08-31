@@ -24,7 +24,7 @@
         "path": "../worker",
         "dependencies": {
           "components": [
-            "cert-manager",
+            "platform-certs",
             "podplane-operator",
             "platform-trust",
             "secrets-store-csi-driver"
