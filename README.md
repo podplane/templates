@@ -20,17 +20,17 @@ Run `make update-manifests` after changing template image values. This regenerat
 
 Template charts must put every container image value under `images`. The manifest's `templates.images` list contains the resolved source images, per-platform digests, and the template image keys that reference each image.
 
-For example, a chart value at `images.caddy` is represented in the manifest as:
+For example, a chart value at `images.envoy` is represented in the manifest as:
 
 ```json
 {
-  "image": "docker.io/library/caddy:2",
+  "image": "docker.io/envoyproxy/envoy:distroless-v1.37-latest",
   "digest": "sha256:...",
-  "size": 22793195,
-  "platform": "linux/arm64/v8",
+  "size": 36551061,
+  "platform": "linux/arm64",
   "index": "sha256:...",
   "templates": {
-    "web": "caddy"
+    "web": "envoy"
   }
 }
 ```

@@ -4,7 +4,7 @@ The `web` template deploys a HTTP web application behind the Podplane ingress st
 
 It creates:
 
-- a Deployment running the app container and, by default, a Caddy sidecar
+- a Deployment running the app container and, by default, an Envoy sidecar
 - a ClusterIP Service on HTTPS port 443
 - a Gateway API HTTPRoute
 - a serving certificate delivered by the cert-manager CSI driver by default, or by a cert-manager Certificate and Secret
@@ -12,20 +12,19 @@ It creates:
 - optionally, additional cluster-internal Service ports that target the app directly
 - optionally, Podplane `SecretProviderBinding` resources and read-only Secrets Store CSI volumes
 
-By default, the application container listens for plain HTTP on `app.port` (default: 8080), while Caddy terminates service TLS and proxies traffic to it. Set `certificates.server=direct` when the app should receive the serving certificate and terminate public service TLS itself.
+By default, the application container listens for plain HTTP on `app.port` (default: 8080), while Envoy terminates service TLS and proxies traffic to it. Set `certificates.server=direct` when the app should receive the serving certificate and terminate public service TLS itself.
 
 ## Values
 
 | Value | Default | Description |
 | --- | --- | --- |
 | `images.app` | `ghcr.io/podplane/hello:latest` | App container image |
-| `images.caddy` | `docker.io/library/caddy:2` | Caddy sidecar image |
+| `images.envoy` | `docker.io/envoyproxy/envoy:distroless-v1.37-latest` | Envoy sidecar image |
 | `app.env` | `{}` | Non-secret environment variables for the app container |
 | `app.port` | `8080` | App port, or an array with the primary port first and additional Service ports after it |
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
-| `metrics.http` | `true` | Enable Caddy HTTP metrics |
 | `serviceAccount.create` | `true` | Create the workload service account when secret mounts are enabled |
 | `serviceAccount.name` | `""` | Service account name; defaults to the release-derived app name |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
@@ -46,9 +45,9 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 
 Certificate delivery and service TLS handling are independent choices.
 
-By default, the template requests pod-local certificates from the cert-manager CSI driver. It does not create cert-manager `Certificate` resources or Kubernetes Secrets, and the driver rotates the mounted files. Set `certificates.secrets=true` to create cert-manager `Certificate` resources and mount their generated Secrets instead. Both approaches expose `tls.crt`, `tls.key`, and `ca.crt`; Caddy or the app must handle rotated files appropriately. Caddy does not currently reload externally rotated certificate files automatically, so sidecar mode continues using its in-memory certificate until Caddy or the Pod restarts; see [caddyserver/caddy#6933](https://github.com/caddyserver/caddy/issues/6933). In direct mode, the serving files are always mounted at `/var/run/secrets/podplane/server-certificate`.
+By default, the template requests pod-local certificates from the cert-manager CSI driver. It does not create cert-manager `Certificate` resources or Kubernetes Secrets, and the driver rotates the mounted files. Set `certificates.secrets=true` to create cert-manager `Certificate` resources and mount their generated Secrets instead. Both approaches expose `tls.crt`, `tls.key`, and `ca.crt`; Envoy or the app must handle rotated files appropriately. Envoy's filesystem SDS watches the mounted certificate directory and atomically adopts rotated credentials without restarting the Pod. Invalid updates leave the previous valid TLS context active. In direct mode, the serving files are always mounted at `/var/run/secrets/podplane/server-certificate`.
 
-In the default `certificates.server=sidecar` mode, the public Service targets Caddy on port 443 and Caddy proxies plain HTTP to the primary app port. In `direct` mode, the Caddy sidecar and configuration are omitted, the public Service targets the primary app port, and the serving certificate is mounted into the app at `/var/run/secrets/podplane/server-certificate`. The app must serve TLS and reload rotated certificate files in direct mode.
+In the default `certificates.server=sidecar` mode, the public Service targets Envoy on port 8443 and Envoy proxies plain HTTP to the primary app port. In `direct` mode, the Envoy sidecar and configuration are omitted, the public Service targets the primary app port, and the serving certificate is mounted into the app at `/var/run/secrets/podplane/server-certificate`. The app must serve TLS and reload rotated certificate files in direct mode.
 
 ## Client certificate
 
@@ -58,7 +57,7 @@ Certificate handling is shared with the serving certificate. CSI gives every Pod
 
 ## Additional Service ports
 
-Set `app.port` to an array to expose additional Service ports. The first item remains the primary port used by Caddy or the public Service; every later port is exposed directly and receives a generated name such as `port-8082`. Additional ports cannot use the public Service port 443 and are not referenced by the HTTPRoute. The app owns their protocol and any authentication or authorization.
+Set `app.port` to an array to expose additional Service ports. The first item remains the primary port used by Envoy or the public Service; every later port is exposed directly and receives a generated name such as `port-8082`. Additional ports cannot use the public Service port 443 and are not referenced by the HTTPRoute. The app owns their protocol and any authentication or authorization.
 
 For example, an app serving public TLS directly on port 8080 and internal mTLS on port 8082 uses:
 

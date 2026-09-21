@@ -11,9 +11,9 @@
           "type": "string",
           "description": "App container image"
         },
-        "caddy": {
+        "envoy": {
           "type": "string",
-          "description": "Caddy sidecar image"
+          "description": "Envoy sidecar image"
         }
       }
     },
@@ -75,7 +75,7 @@
             "sidecar",
             "direct"
           ],
-          "description": "Terminate service TLS in the Caddy sidecar or directly in the app"
+          "description": "Terminate service TLS in the Envoy sidecar or directly in the app"
         },
         "client": {
           "type": "boolean",
@@ -104,16 +104,6 @@
           "minimum": 1,
           "maximum": 65535,
           "description": "External HTTPS port for the browser-facing route URL"
-        }
-      }
-    },
-    "metrics": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "http": {
-          "type": "boolean",
-          "description": "Enable Caddy HTTP metrics"
         }
       }
     },

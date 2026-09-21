@@ -7,23 +7,88 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "web.name" . }}-caddy-configmap
+  name: {{ include "web.name" . }}-envoy-configmap
   labels:
     {{- include "web.labels" . | nindent 4 }}
 data:
-  Caddyfile: |
-    {
-      auto_https off
-      {{- if .Values.metrics }}
-      {{- if .Values.metrics.http }}
-      metrics
-      {{- end }}
-      {{- end }}
-    }
-    :443 {
-      tls /etc/caddy/certs/tls.crt /etc/caddy/certs/tls.key
-      reverse_proxy 127.0.0.1:{{ include "web.primaryPort" . }}
-    }
+  envoy.yaml: |
+    node:
+      id: {{ include "web.name" . }}-sidecar
+      cluster: podplane-web
+    overload_manager:
+      resource_monitors:
+        - name: envoy.resource_monitors.global_downstream_max_connections
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.resource_monitors.downstream_connections.v3.DownstreamConnectionsConfig
+            max_active_downstream_connections: 1024
+    static_resources:
+      listeners:
+        - name: https
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 8443
+          filter_chains:
+            - transport_socket:
+                name: envoy.transport_sockets.tls
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+                  common_tls_context:
+                    tls_certificate_sds_secret_configs:
+                      - name: service-certificate
+                        sds_config:
+                          resource_api_version: V3
+                          path_config_source:
+                            path: /etc/envoy/server-certificate.yaml
+                            watched_directory:
+                              path: /etc/envoy
+              filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: ingress_http
+                    codec_type: AUTO
+                    route_config:
+                      name: local_route
+                      virtual_hosts:
+                        - name: local_service
+                          domains: ["*"]
+                          routes:
+                            - match:
+                                prefix: /
+                              route:
+                                cluster: local_service
+                                timeout: 0s
+                    upgrade_configs:
+                      - upgrade_type: websocket
+                    http_filters:
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+      clusters:
+        - name: local_service
+          type: STATIC
+          connect_timeout: 1s
+          load_assignment:
+            cluster_name: local_service
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: 127.0.0.1
+                          port_value: {{ include "web.primaryPort" . }}
+  server-certificate.yaml: |
+    resources:
+      - "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret
+        name: service-certificate
+        tls_certificate:
+          certificate_chain:
+            filename: /var/run/secrets/podplane/server-certificate/tls.crt
+          private_key:
+            filename: /var/run/secrets/podplane/server-certificate/tls.key
+          watched_directory:
+            path: /var/run/secrets/podplane/server-certificate
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -85,15 +150,26 @@ spec:
             {{- end }}
           {{- end }}
         {{- if eq .Values.certificates.server "sidecar" }}
-        - name: {{ include "web.name" . }}-caddy
-          image: {{ .Values.images.caddy | quote }}
+        - name: {{ include "web.name" . }}-envoy
+          image: {{ .Values.images.envoy | quote }}
+          args:
+            - -c
+            - /etc/envoy/envoy.yaml
+            - --disable-hot-restart
           ports:
-            - containerPort: 443
-            {{- if .Values.metrics }}
-            {{- if .Values.metrics.http }}
-            - containerPort: 2019
-            {{- end }}
-            {{- end }}
+            - name: https
+              containerPort: 8443
+          readinessProbe:
+            tcpSocket:
+              port: https
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
           resources:
             requests:
               cpu: "100m"
@@ -103,10 +179,11 @@ spec:
               memory: "256Mi"
           volumeMounts:
             - name: {{ include "web.name" . }}-service-certificate
-              mountPath: /etc/caddy/certs
+              mountPath: /var/run/secrets/podplane/server-certificate
               readOnly: true
-            - name: {{ include "web.name" . }}-caddy-config-volume
-              mountPath: /etc/caddy
+            - name: {{ include "web.name" . }}-envoy-config-volume
+              mountPath: /etc/envoy
+              readOnly: true
         {{- end }}
       volumes:
         {{- range $index, $secret := .Values.secrets }}
@@ -156,7 +233,7 @@ spec:
           {{- end }}
         {{- end }}
         {{- if eq .Values.certificates.server "sidecar" }}
-        - name: {{ include "web.name" . }}-caddy-config-volume
+        - name: {{ include "web.name" . }}-envoy-config-volume
           configMap:
-            name: {{ include "web.name" . }}-caddy-configmap
+            name: {{ include "web.name" . }}-envoy-configmap
         {{- end }}

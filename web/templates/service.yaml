@@ -20,7 +20,7 @@ spec:
     - name: https
       protocol: TCP
       port: 443
-      targetPort: {{ if eq .Values.certificates.server "sidecar" }}443{{ else }}{{ include "web.primaryPort" . }}{{ end }}
+      targetPort: {{ if eq .Values.certificates.server "sidecar" }}8443{{ else }}{{ include "web.primaryPort" . }}{{ end }}
     {{- range $index, $port := $ports }}
     {{- if gt $index 0 }}
     - name: {{ printf "port-%v" $port | quote }}

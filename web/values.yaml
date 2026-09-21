@@ -4,7 +4,7 @@
 ---
 images:
   app: "ghcr.io/podplane/hello:latest"
-  caddy: "docker.io/library/caddy:2"
+  envoy: "docker.io/envoyproxy/envoy:distroless-v1.37-latest"
 app:
   env: {}
   port: 8080
@@ -12,8 +12,6 @@ route:
   hostname: ""
   path: /
   port: 443
-metrics:
-  http: true # enables Caddy http metrics - see https://caddyserver.com/docs/metrics for more
 serviceAccount:
   create: true
   name: ""
