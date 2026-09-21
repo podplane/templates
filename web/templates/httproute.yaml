@@ -11,8 +11,8 @@ metadata:
     {{- include "web.labels" . | nindent 4 }}
 spec:
   parentRefs:
-    - name: platform-traefik-gateway
-      namespace: platform-traefik
+    - name: platform-envoy-gateway
+      namespace: platform-envoy-gateway
   {{- if .Values.route.hostname }}
   hostnames:
     - {{ .Values.route.hostname | quote }}

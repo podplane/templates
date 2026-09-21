@@ -10,10 +10,10 @@
         "dependencies": {
           "components": [
             "cert-manager",
-            "podplane-operator",
+            "envoy-gateway",
             "platform-trust",
-            "secrets-store-csi-driver",
-            "traefik"
+            "podplane-operator",
+            "secrets-store-csi-driver"
           ]
         }
       },
