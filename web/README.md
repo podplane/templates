@@ -7,8 +7,8 @@ It creates:
 - a Deployment running the app container and, by default, an Envoy sidecar
 - a ClusterIP Service on HTTPS port 443
 - a Gateway API HTTPRoute
-- a serving certificate delivered by the cert-manager CSI driver by default, or by a cert-manager Certificate and Secret
-- optionally, a client certificate for authenticating outbound connections to other cluster services
+- an automatically rotating Kubernetes pod certificate authorized for the release Service
+- optionally, a ServiceAccount SPIFFE identity and workload trust bundle for outbound mTLS
 - optionally, additional cluster-internal Service ports that target the app directly
 - optionally, Podplane `SecretProviderBinding` resources and read-only Secrets Store CSI volumes
 
@@ -25,7 +25,7 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
-| `serviceAccount.create` | `true` | Create the workload service account when secret mounts are enabled |
+| `serviceAccount.create` | `true` | Create the workload service account |
 | `serviceAccount.name` | `""` | Service account name; defaults to the release-derived app name |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
 | `secrets[].bindingName` | required | SecretProviderBinding name; the operator generates a same-name SecretProviderClass |
@@ -38,22 +38,27 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `secrets[].syncToKubernetesSecrets[].labels` | `{}` | Labels copied to the synced Kubernetes Secret |
 | `secrets[].syncToKubernetesSecrets[].annotations` | `{}` | Annotations copied to the synced Kubernetes Secret |
 | `certificates.server` | `sidecar` | Service TLS handling mode (`sidecar` or `direct`) |
-| `certificates.client` | `false` | Issue and mount a client certificate |
-| `certificates.secrets` | `false` | Create cert-manager Certificate Secrets instead of pod-local CSI certificates |
+| `certificates.client` | `false` | Project and mount a ServiceAccount SPIFFE identity and workload trust bundle |
 
 ## Server certificate
 
-Certificate delivery and service TLS handling are independent choices.
+The template requests a serving certificate through a Kubernetes pod certificate projection. The request uses the `certificates.podplane.dev/workload` signer and identifies the release Service that the certificate must be valid for. The Podplane operator only signs the request when that Service selects the requesting Pod, preventing a workload from requesting a certificate for an unrelated Service.
 
-By default, the template requests pod-local certificates from the cert-manager CSI driver. It does not create cert-manager `Certificate` resources or Kubernetes Secrets, and the driver rotates the mounted files. Set `certificates.secrets=true` to create cert-manager `Certificate` resources and mount their generated Secrets instead. Both approaches expose `tls.crt`, `tls.key`, and `ca.crt`; Envoy or the app must handle rotated files appropriately. Envoy's filesystem SDS watches the mounted certificate directory and atomically adopts rotated credentials without restarting the Pod. Invalid updates leave the previous valid TLS context active. In direct mode, the serving files are always mounted at `/var/run/secrets/podplane/server-certificate`.
+The private key remains local to the Pod and is never stored in a Kubernetes Secret or another API object. Kubernetes renews the certificate and atomically updates the projected files before it expires. No cert-manager resource is created, and applications do not need to persist certificate state between Pods.
 
-In the default `certificates.server=sidecar` mode, the public Service targets Envoy on port 8443 and Envoy proxies plain HTTP to the primary app port. In `direct` mode, the Envoy sidecar and configuration are omitted, the public Service targets the primary app port, and the serving certificate is mounted into the app at `/var/run/secrets/podplane/server-certificate`. The app must serve TLS and reload rotated certificate files in direct mode.
+In the default `certificates.server=sidecar` mode, the public Service targets Envoy on port 8443 and Envoy proxies plain HTTP to the primary app port. Kubernetes mounts the private key and certificate chain together at `/var/run/secrets/podplane/server-certificate/credential-bundle.pem`. Envoy reads both from that file, while its filesystem SDS watches the projected directory and adopts rotated credentials without restarting the Pod. An invalid update leaves the previous valid TLS context active. The application receives plain HTTP from Envoy and does not need to load the serving certificate itself.
+
+In `direct` mode, the Envoy sidecar and configuration are omitted and the public Service targets the primary app port. The same `credential-bundle.pem` is mounted into the application instead. The application must terminate TLS, watch the projected directory, and reload the credential after rotation. The serving projection does not include trust roots; those are mounted only when the optional client identity is enabled.
+
+The chart's `BackendTLSPolicy` tells Envoy Gateway how to verify the serving certificate when it connects to the Service. It references the workload CA published by the operator as `ClusterTrustBundle/certificates.podplane.dev:workload:roots`, so the chart does not need to copy the CA into a namespace-local ConfigMap.
 
 ## Client certificate
 
-When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one namespace-qualified, release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. For example, a release named `example-api` in the `production` namespace receives the client identity `example-api.production`. This is independent of serving-certificate delivery and service TLS handling.
+Set `certificates.client=true` when the application needs a workload identity for outbound mTLS connections. This creates a second pod certificate projection for the workload service account; it is independent of the serving certificate and does not change how inbound TLS is terminated.
 
-Certificate handling is shared with the serving certificate. CSI gives every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. Setting `certificates.secrets=true` instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both approaches renew certificates, so long-running applications must reload mounted TLS material after rotation.
+The identity is a SPIFFE X.509-SVID with an ID in the form `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`. For example, an `example-api` ServiceAccount in the `production` namespace receives an identity ending in `/ns/production/sa/example-api`. The private key and certificate chain are mounted together at `/var/run/secrets/podplane/client-certificate/credential-bundle.pem`, and the workload CA roots are mounted alongside them at `trust-bundle.pem`.
+
+Both files are projected directly into the Pod and are never backed by Kubernetes Secrets. Kubernetes rotates them automatically, so a long-running application must watch the projected directory and reload its identity and trust roots after updates. The application remains responsible for validating peer certificates and authorizing their SPIFFE identities.
 
 ## Additional Service ports
 

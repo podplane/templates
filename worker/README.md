@@ -10,7 +10,7 @@ It creates:
 - optionally, a dedicated or existing ServiceAccount
 - optionally, Podplane `SecretProviderBinding` resources and read-only Secrets Store CSI volumes
 - optionally, read-only Kubernetes image volumes containing separately versioned OCI content
-- optionally, a cert-manager CSI or Secret-backed client certificate mounted read-only for mTLS authentication
+- optionally, an automatically rotating ServiceAccount SPIFFE identity and workload trust bundle for mTLS
 
 The default single replica uses the `Recreate` deployment strategy so an update does not briefly overlap the old and new worker. Applications remain responsible for graceful shutdown and restart-safe processing.
 
@@ -49,8 +49,7 @@ The default single replica uses the `Recreate` deployment strategy so an update 
 | `podAnnotations` | `{}` | Additional Pod annotations |
 | `podLabels` | `{}` | Additional Pod labels |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
-| `certificates.client` | `false` | Issue and mount a client certificate |
-| `certificates.secrets` | `false` | Create a cert-manager Certificate Secret instead of a pod-local CSI certificate |
+| `certificates.client` | `false` | Project and mount the worker ServiceAccount's SPIFFE identity and workload trust bundle |
 
 The `secrets` structure is the same as the Podplane `web` template. Secret mounts are read-only and non-secret configuration should use `app.env`.
 
@@ -75,9 +74,7 @@ The worker can use environment variables or arguments to locate files within the
 
 ## Client certificate
 
-When `certificates.client` is true, the template requests a certificate with the `client auth` extended key usage and exactly one namespace-qualified, release-derived DNS SAN. Both delivery methods mount `tls.crt`, `tls.key`, and the issuer-provided `ca.crt` when available at `/var/run/secrets/podplane/client-certificate`. The default issuer is Podplane's cluster self-signed service issuer. For example, a release named `email-worker` in the `production` namespace receives the client identity `email-worker.production`.
-
-By default, the template uses `csi.cert-manager.io`, giving every Pod a unique node-local private key and automatically renewed certificate without creating a Kubernetes Secret. Setting `certificates.secrets=true` instead creates a cert-manager `Certificate` and mounts its persistent Secret; use it when the CSI driver is unavailable or credentials must persist or be shared. Both approaches renew certificates, so long-running applications must reload mounted TLS material after rotation. CSI certificates require Podplane's cert-manager component, which includes the cert-manager CSI driver; certificate Secrets require cert-manager.
+When `certificates.client` is true, Kubernetes 1.37 projects a SPIFFE X.509-SVID for the worker's service account at `/var/run/secrets/podplane/client-certificate/credential-bundle.pem` and signer roots at `trust-bundle.pem`. The SPIFFE ID is `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`. The application must validate and authorize peer identity, watch both projected files, and reload after atomic rotation. The signer is `certificates.podplane.dev/workload`; no cert-manager resource, CSI volume, or Kubernetes Secret is used.
 
 ## Example
 

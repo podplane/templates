@@ -41,5 +41,5 @@ spec:
     hostname: {{ printf "%s-service.%s.svc.cluster.local" (include "web.name" .) .Release.Namespace | quote }}
     caCertificateRefs:
       - group: "" # must be blank
-        name: platform-selfsigned-ca-bundle
-        kind: ConfigMap
+        kind: ClusterTrustBundle
+        name: certificates.podplane.dev:workload:roots

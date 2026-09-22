@@ -5,6 +5,7 @@
 CHARTS := $(patsubst %/Chart.yaml,%,$(wildcard */Chart.yaml))
 JSON_FILES := $(shell find manifests -name '*.json' -type f 2>/dev/null | sort)
 YAML_FILES := $(shell find . -path './.git' -prune -o -path '*/templates/*.yaml' -prune -o -type f \( -name '*.yaml' -o -name '*.yml' \) -print | sort)
+KUBE_VERSION := 1.37.0
 
 .DEFAULT_GOAL := help
 
@@ -53,7 +54,7 @@ lint: ## Lint all Helm charts
 	@echo "Linting Helm charts..."
 	@for chart in $(CHARTS); do \
 		output="$$(mktemp)"; \
-		helm lint "$$chart" > "$$output" 2>&1; \
+		helm lint --kube-version "$(KUBE_VERSION)" "$$chart" > "$$output" 2>&1; \
 		status="$$?"; \
 		sed '/^\[INFO\] Chart.yaml: icon is recommended$$/d' "$$output"; \
 		rm -f "$$output"; \
@@ -66,7 +67,7 @@ validate: ## Render all Helm charts
 	@command -v helm >/dev/null 2>&1 || { echo "helm is required but not installed"; exit 1; }
 	@echo "Validating Helm chart renders..."
 	@for chart in $(CHARTS); do \
-		helm template "$$chart" >/dev/null; \
+		helm template --kube-version "$(KUBE_VERSION)" "$$chart" >/dev/null; \
 	done
 
 precommit: ## Check formatting, lint charts, and validate renders

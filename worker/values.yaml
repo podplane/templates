@@ -71,4 +71,3 @@ podAnnotations: {}
 podLabels: {}
 certificates:
   client: false
-  secrets: false

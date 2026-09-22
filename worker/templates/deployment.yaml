@@ -34,7 +34,9 @@ spec:
       securityContext:
         {{- toYaml (omit .Values.podSecurityContext "fsGroup") | nindent 8 }}
         {{- if .Values.certificates.client }}
-        fsGroup: 65532
+        fsGroup: {{ if hasKey .Values.podSecurityContext "fsGroup" }}{{ .Values.podSecurityContext.fsGroup }}{{ else }}65532{{ end }}
+        {{- else if hasKey .Values.podSecurityContext "fsGroup" }}
+        fsGroup: {{ .Values.podSecurityContext.fsGroup }}
         {{- end }}
       containers:
         - name: {{ include "worker.name" . }}-container
@@ -106,23 +108,16 @@ spec:
         {{- end }}
         {{- if .Values.certificates.client }}
         - name: {{ include "worker.name" . }}-client-certificate
-          {{- if not .Values.certificates.secrets }}
-          csi:
-            driver: csi.cert-manager.io
-            readOnly: true
-            volumeAttributes:
-              csi.cert-manager.io/issuer-name: "platform-service-certificate-clusterissuer"
-              csi.cert-manager.io/issuer-kind: "ClusterIssuer"
-              csi.cert-manager.io/dns-names: {{ include "worker.clientCertificateDNSName" . | quote }}
-              csi.cert-manager.io/key-usages: "digital signature,client auth"
-              csi.cert-manager.io/certificate-file: tls.crt
-              csi.cert-manager.io/privatekey-file: tls.key
-              csi.cert-manager.io/ca-file: ca.crt
-              csi.cert-manager.io/fs-group: "65532"
-          {{- else }}
-          secret:
-            secretName: {{ include "worker.clientCertificateSecretName" . }}
-          {{- end }}
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: certificates.podplane.dev/workload
+                  keyType: ED25519
+                  credentialBundlePath: credential-bundle.pem
+              - clusterTrustBundle:
+                  signerName: certificates.podplane.dev/workload
+                  labelSelector: {}
+                  path: trust-bundle.pem
         {{- end }}
         {{- range $index, $secret := .Values.secrets }}
         - name: {{ printf "%s-secrets-store-%d" (include "worker.name" $) $index }}

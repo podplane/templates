@@ -84,9 +84,9 @@ data:
         name: service-certificate
         tls_certificate:
           certificate_chain:
-            filename: /var/run/secrets/podplane/server-certificate/tls.crt
+            filename: /var/run/secrets/podplane/server-certificate/credential-bundle.pem
           private_key:
-            filename: /var/run/secrets/podplane/server-certificate/tls.key
+            filename: /var/run/secrets/podplane/server-certificate/credential-bundle.pem
           watched_directory:
             path: /var/run/secrets/podplane/server-certificate
 {{- end }}
@@ -109,9 +109,7 @@ spec:
       labels:
         {{- include "web.selectorLabels" . | nindent 8 }}
     spec:
-      {{- if or .Values.secrets .Values.serviceAccount.name }}
       serviceAccountName: {{ include "web.serviceAccountName" . }}
-      {{- end }}
       securityContext:
         fsGroup: 65532
       containers:
@@ -195,42 +193,27 @@ spec:
               secretProviderClass: {{ required (printf "secrets[%d].bindingName is required" $index) $secret.bindingName | quote }}
         {{- end }}
         - name: {{ include "web.name" . }}-service-certificate
-          {{- if not .Values.certificates.secrets }}
-          csi:
-            driver: csi.cert-manager.io
-            readOnly: true
-            volumeAttributes:
-              csi.cert-manager.io/issuer-name: "platform-service-certificate-clusterissuer"
-              csi.cert-manager.io/issuer-kind: "ClusterIssuer"
-              csi.cert-manager.io/dns-names: {{ include "web.serverCertificateDNSNames" . | quote }}
-              csi.cert-manager.io/key-usages: "digital signature,server auth"
-              csi.cert-manager.io/certificate-file: tls.crt
-              csi.cert-manager.io/privatekey-file: tls.key
-              csi.cert-manager.io/ca-file: ca.crt
-              csi.cert-manager.io/fs-group: "65532"
-          {{- else }}
-          secret:
-            secretName: {{ include "web.serverCertificateSecretName" . }}
-          {{- end }}
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: certificates.podplane.dev/workload
+                  keyType: ED25519
+                  credentialBundlePath: credential-bundle.pem
+                  userAnnotations:
+                    certificates.podplane.dev/mode: service
+                    certificates.podplane.dev/service: {{ include "web.name" . }}-service
         {{- if .Values.certificates.client }}
         - name: {{ include "web.name" . }}-client-certificate
-          {{- if not .Values.certificates.secrets }}
-          csi:
-            driver: csi.cert-manager.io
-            readOnly: true
-            volumeAttributes:
-              csi.cert-manager.io/issuer-name: "platform-service-certificate-clusterissuer"
-              csi.cert-manager.io/issuer-kind: "ClusterIssuer"
-              csi.cert-manager.io/dns-names: {{ include "web.clientCertificateDNSName" . | quote }}
-              csi.cert-manager.io/key-usages: "digital signature,client auth"
-              csi.cert-manager.io/certificate-file: tls.crt
-              csi.cert-manager.io/privatekey-file: tls.key
-              csi.cert-manager.io/ca-file: ca.crt
-              csi.cert-manager.io/fs-group: "65532"
-          {{- else }}
-          secret:
-            secretName: {{ include "web.clientCertificateSecretName" . }}
-          {{- end }}
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: certificates.podplane.dev/workload
+                  keyType: ED25519
+                  credentialBundlePath: credential-bundle.pem
+              - clusterTrustBundle:
+                  signerName: certificates.podplane.dev/workload
+                  labelSelector: {}
+                  path: trust-bundle.pem
         {{- end }}
         {{- if eq .Values.certificates.server "sidecar" }}
         - name: {{ include "web.name" . }}-envoy-config-volume

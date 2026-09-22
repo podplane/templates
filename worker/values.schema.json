@@ -204,17 +204,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "client",
-        "secrets"
+        "client"
       ],
       "properties": {
         "client": {
           "type": "boolean",
-          "description": "Issue and mount a client certificate for the worker"
-        },
-        "secrets": {
-          "type": "boolean",
-          "description": "Create a cert-manager Certificate Secret instead of using a pod-local CSI certificate"
+          "description": "Project and mount the worker ServiceAccount's SPIFFE identity and workload trust bundle"
         }
       }
     },
@@ -409,6 +404,10 @@
         "runAsGroup": {
           "type": "integer",
           "minimum": 0
+        },
+        "fsGroup": {
+          "type": "integer",
+          "minimum": 1
         },
         "fsGroupChangePolicy": {
           "type": "string",

@@ -65,8 +65,7 @@
       "additionalProperties": false,
       "required": [
         "server",
-        "client",
-        "secrets"
+        "client"
       ],
       "properties": {
         "server": {
@@ -79,11 +78,7 @@
         },
         "client": {
           "type": "boolean",
-          "description": "Issue and mount a client certificate for the web application"
-        },
-        "secrets": {
-          "type": "boolean",
-          "description": "Create cert-manager Certificate Secrets instead of using pod-local CSI certificates"
+          "description": "Project and mount a ServiceAccount SPIFFE identity and workload trust bundle for the web application"
         }
       }
     },
@@ -113,7 +108,7 @@
       "properties": {
         "create": {
           "type": "boolean",
-          "description": "Create the service account used by the workload when secret mounts are enabled"
+          "description": "Create the service account used as the workload's SPIFFE identity"
         },
         "name": {
           "type": "string",
@@ -121,7 +116,25 @@
           "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
           "description": "Service account name; defaults to the release-derived app name"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "create": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "secrets": {
       "type": "array",

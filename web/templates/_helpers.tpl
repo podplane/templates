@@ -34,22 +34,6 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- end -}}
 {{- end -}}
 
-{{- define "web.serverCertificateSecretName" -}}
-{{- printf "%s-certificate-secret" (include "web.name" .) | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{- define "web.serverCertificateDNSNames" -}}
-{{- printf "%s-service,%s-service.%s,%s-service.%s.svc,%s-service.%s.svc.cluster.local" (include "web.name" .) (include "web.name" .) .Release.Namespace (include "web.name" .) .Release.Namespace (include "web.name" .) .Release.Namespace -}}
-{{- end -}}
-
-{{- define "web.clientCertificateSecretName" -}}
-{{- printf "%s-client-certificate-secret" (include "web.name" .) | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
-{{- define "web.clientCertificateDNSName" -}}
-{{- printf "%s.%s" (include "web.name" .) .Release.Namespace -}}
-{{- end -}}
-
 {{- define "web.primaryPort" -}}
 {{- if kindIs "slice" .Values.app.port -}}
 {{- index .Values.app.port 0 -}}

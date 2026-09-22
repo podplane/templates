@@ -9,9 +9,7 @@
         "path": "../web",
         "dependencies": {
           "components": [
-            "cert-manager",
             "envoy-gateway",
-            "platform-trust",
             "podplane-operator",
             "secrets-store-csi-driver"
           ]
@@ -24,7 +22,6 @@
         "path": "../worker",
         "dependencies": {
           "components": [
-            "platform-certs",
             "podplane-operator",
             "secrets-store-csi-driver"
           ]
@@ -54,10 +51,10 @@
       },
       {
         "image": "ghcr.io/podplane/hello:latest",
-        "digest": "sha256:5ecb807fa10f0a6719656820ec26d4b76c96ce1da6c8c866e81f052a4bdff30c",
-        "size": 3512540,
+        "digest": "sha256:69aa9294f55575b75468f6dff3573648ec16f4ece4830ba882262a622c187c02",
+        "size": 3519509,
         "platform": "linux/amd64",
-        "index": "sha256:7f472cc199b57f6b638f9f46212c1809e2510f5ea7c130722000b6f5586e17b0",
+        "index": "sha256:63d474aa6c3d0bb27ebcdd29957ab644f5cde319f00db88aca1a661c6989e413",
         "templates": {
           "web": "app",
           "worker": "app"
@@ -65,10 +62,10 @@
       },
       {
         "image": "ghcr.io/podplane/hello:latest",
-        "digest": "sha256:290babf532b475cdcfc856198009327c3d4c1dc2b6a187de2e18a0f838386761",
-        "size": 3187051,
+        "digest": "sha256:83b18ee6b86ffe335ceeac7e114c74de022dde87bb6b11712630e871b1566f3d",
+        "size": 3192303,
         "platform": "linux/arm64",
-        "index": "sha256:7f472cc199b57f6b638f9f46212c1809e2510f5ea7c130722000b6f5586e17b0",
+        "index": "sha256:63d474aa6c3d0bb27ebcdd29957ab644f5cde319f00db88aca1a661c6989e413",
         "templates": {
           "web": "app",
           "worker": "app"
