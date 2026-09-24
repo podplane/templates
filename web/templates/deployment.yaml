@@ -197,7 +197,7 @@ spec:
             sources:
               - podCertificate:
                   signerName: certificates.podplane.dev/workload
-                  keyType: ED25519
+                  keyType: ECDSAP256
                   credentialBundlePath: credential-bundle.pem
                   userAnnotations:
                     certificates.podplane.dev/mode: service
