@@ -24,7 +24,7 @@ For example, a chart value at `images.envoy` is represented in the manifest as:
 
 ```json
 {
-  "image": "docker.io/envoyproxy/envoy:distroless-v1.37-latest",
+  "image": "docker.io/envoyproxy/envoy:distroless-v1.39.0",
   "digest": "sha256:...",
   "size": 36551061,
   "platform": "linux/arm64",

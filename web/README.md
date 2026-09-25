@@ -19,7 +19,7 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | Value | Default | Description |
 | --- | --- | --- |
 | `images.app` | `ghcr.io/podplane/hello:latest` | App container image |
-| `images.envoy` | `docker.io/envoyproxy/envoy:distroless-v1.37-latest` | Envoy sidecar image |
+| `images.envoy` | `docker.io/envoyproxy/envoy:distroless-v1.39.0` | Envoy sidecar image; aligned with Envoy Gateway where possible |
 | `app.env` | `{}` | Non-secret environment variables for the app container |
 | `app.port` | `8080` | App port, or an array with the primary port first and additional Service ports after it |
 | `route.hostname` | `""` | Optional external hostname for routing |

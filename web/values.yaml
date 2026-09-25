@@ -4,7 +4,10 @@
 ---
 images:
   app: "ghcr.io/podplane/hello:latest"
-  envoy: "docker.io/envoyproxy/envoy:distroless-v1.37-latest"
+  # Keep this aligned with the Envoy version selected by Envoy Gateway where
+  # possible to minimize cached images. Envoy Gateway's version takes priority
+  # for maximum interoperability with its managed data plane.
+  envoy: "docker.io/envoyproxy/envoy:distroless-v1.39.0"
 app:
   env: {}
   port: 8080

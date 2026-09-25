@@ -30,21 +30,21 @@
     ],
     "images": [
       {
-        "image": "docker.io/envoyproxy/envoy:distroless-v1.37-latest",
-        "digest": "sha256:6552e8419af4361c764ae30fe801af9e1d511ff2fa887b7919c5f8fdac357bda",
-        "size": 37720681,
+        "image": "docker.io/envoyproxy/envoy:distroless-v1.39.0",
+        "digest": "sha256:9e24a3b459b463dd37e116a0f46d2abfcb6a1cb9897d87e85cf2ee25edbe373b",
+        "size": 43277886,
         "platform": "linux/amd64",
-        "index": "sha256:bf9f1b7b422677b6be5b68d2bdbdc6b972933755647efa387588a3c61c0edcf0",
+        "index": "sha256:7877ad87afd7459e1bd2a077ff601fec7c93aeecd62e71664560d96328c62cf4",
         "templates": {
           "web": "envoy"
         }
       },
       {
-        "image": "docker.io/envoyproxy/envoy:distroless-v1.37-latest",
-        "digest": "sha256:f0c2e8b39ee81adc3998fc8b8bc9dc5c96253fa9ed918b5089702b096ba916e7",
-        "size": 36551061,
+        "image": "docker.io/envoyproxy/envoy:distroless-v1.39.0",
+        "digest": "sha256:8dbb967dba5d22a28f0e7974173aa6d4a5621ce48ac6d44142d9b4d9c960af14",
+        "size": 41967000,
         "platform": "linux/arm64",
-        "index": "sha256:bf9f1b7b422677b6be5b68d2bdbdc6b972933755647efa387588a3c61c0edcf0",
+        "index": "sha256:7877ad87afd7459e1bd2a077ff601fec7c93aeecd62e71664560d96328c62cf4",
         "templates": {
           "web": "envoy"
         }
