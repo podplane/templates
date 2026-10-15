@@ -19,6 +19,18 @@ serviceAccount:
   create: true
   name: ""
 secrets: []
+# Restricted Pod Security defaults. For an image that must run as root, set
+# podSecurityContext.runAsNonRoot=false, plus containerSecurityContext.capabilities={}
+# (e.g. with --set-json) if it also needs the default Linux capabilities.
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
 certificates:
   server: sidecar
   client: false

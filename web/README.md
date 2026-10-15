@@ -27,6 +27,8 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
 | `serviceAccount.create` | `true` | Create the workload service account |
 | `serviceAccount.name` | `""` | Service account name; defaults to the release-derived app name |
+| `podSecurityContext` | non-root, RuntimeDefault seccomp, `fsGroup: 65532` | Pod-level security context |
+| `containerSecurityContext` | restricted defaults | App container security context |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
 | `secrets[].bindingName` | required | SecretProviderBinding name; the operator generates a same-name SecretProviderClass |
 | `secrets[].providerName` | required | Cluster-local Podplane secrets provider name |

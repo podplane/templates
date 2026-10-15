@@ -111,10 +111,17 @@ spec:
     spec:
       serviceAccountName: {{ include "web.serviceAccountName" . }}
       securityContext:
-        fsGroup: 65532
+        {{- with omit .Values.podSecurityContext "fsGroup" }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        fsGroup: {{ if hasKey .Values.podSecurityContext "fsGroup" }}{{ .Values.podSecurityContext.fsGroup }}{{ else }}65532{{ end }}
       containers:
         - name: {{ include "web.name" . }}-container
           image: {{ .Values.images.app | quote }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.app.env }}
           env:
             {{- range $name, $value := . }}
