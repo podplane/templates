@@ -30,6 +30,7 @@ The default single replica uses the `Recreate` deployment strategy so an update 
 | `probes.liveness` | disabled | Optional exec liveness probe |
 | `probes.readiness` | disabled | Optional exec readiness probe |
 | `probes.startup` | disabled | Optional exec startup probe |
+| `runtimeClassName` | `gvisor` | Pod RuntimeClass, `gvisor` or `runc`; see [Runtime](#runtime) |
 | `podSecurityContext` | non-root, RuntimeDefault seccomp | Pod-level security context |
 | `containerSecurityContext` | restricted defaults | Worker container security context |
 | `workVolume.enabled` | `true` | Mount a writable `emptyDir` temporary work volume |
@@ -72,9 +73,26 @@ imageVolumes:
 
 The worker can use environment variables or arguments to locate files within these mounts. Container runtimes may mount image volumes with execution disabled; applications that need to run mounted content should copy it into the writable work volume and invoke the copy. Content staging and executable-path selection are application concerns rather than template behavior.
 
+## Runtime
+
+Pods run in the gVisor sandbox by default. Set `runtimeClassName=runc` only when
+the application needs the host kernel directly, for compatibility or measured
+performance:
+
+```sh
+podplane deploy worker --name example --image ghcr.io/example/app:latest --set runtimeClassName=runc
+```
+
+This value only requests runc. Podplane admission rejects the Pods unless a
+cluster administrator has labelled the namespace
+`runtime.podplane.dev/runc: allowed`; the rejection appears in the ReplicaSet's
+events. The chart requires the `gvisor` and `runc` RuntimeClasses that managed
+Podplane clusters provide, and never omits its selection to fall back to the
+node's default runtime.
+
 ## Client certificate
 
-When `certificates.client` is true, Kubernetes 1.37 projects a SPIFFE X.509-SVID for the worker's service account at `/var/run/secrets/podplane/client-certificate/credential-bundle.pem` and signer roots at `trust-bundle.pem`. The SPIFFE ID is `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`. The application must validate and authorize peer identity, watch both projected files, and reload after atomic rotation. The signer is `certificates.podplane.dev/workload`; no cert-manager resource, CSI volume, or Kubernetes Secret is used.
+When `certificates.client` is true, Kubernetes 1.37 projects a SPIFFE X.509-SVID for the worker's service account at `/var/run/secrets/podplane/client-certificate/credential-bundle.pem` and signer roots at `trust-bundle.pem`. The SPIFFE ID is `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`. The application must validate and authorize peer identity, and poll both projected files to reload after atomic rotation; under gVisor, the default runtime, inotify watches never fire for projected volume updates. The signer is `certificates.podplane.dev/workload`; no cert-manager resource, CSI volume, or Kubernetes Secret is used.
 
 ## Example
 

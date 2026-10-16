@@ -44,6 +44,10 @@ probes:
     timeoutSeconds: 1
     successThreshold: 1
     failureThreshold: 30
+# RuntimeClass for the Pods: gvisor (sandboxed) or runc. runc requires the
+# namespace label runtime.podplane.dev/runc=allowed, which only a cluster
+# administrator can grant; this value does not grant it.
+runtimeClassName: gvisor
 podSecurityContext:
   runAsNonRoot: true
   seccompProfile:

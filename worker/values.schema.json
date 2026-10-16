@@ -12,6 +12,7 @@
     "workVolume",
     "imageVolumes",
     "certificates",
+    "runtimeClassName",
     "networkPolicy",
     "serviceAccount",
     "podAnnotations",
@@ -115,6 +116,14 @@
           "$ref": "#/definitions/probe"
         }
       }
+    },
+    "runtimeClassName": {
+      "type": "string",
+      "enum": [
+        "gvisor",
+        "runc"
+      ],
+      "description": "Pod RuntimeClass; runc requires runc permission on the namespace"
     },
     "podSecurityContext": {
       "$ref": "#/definitions/podSecurityContext"

@@ -9,7 +9,7 @@ KUBE_VERSION := 1.37.0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup fmt check lint validate update-manifests precommit
+.PHONY: help setup fmt check lint validate test update-manifests precommit
 
 help: ## Show available targets
 	@echo "Usage: make <target>"
@@ -70,10 +70,16 @@ validate: ## Render all Helm charts
 		helm template --kube-version "$(KUBE_VERSION)" "$$chart" >/dev/null; \
 	done
 
-precommit: ## Check formatting, lint charts, and validate renders
+test: ## Run chart rendering tests
+	@command -v helm >/dev/null 2>&1 || { echo "helm is required but not installed"; exit 1; }
+	@command -v yq >/dev/null 2>&1 || { echo "yq is required but not installed"; exit 1; }
+	@KUBE_VERSION="$(KUBE_VERSION)" scripts/test-charts.sh
+
+precommit: ## Check formatting, lint charts, validate renders, and run chart tests
 	@$(MAKE) check
 	@$(MAKE) lint
 	@$(MAKE) validate
+	@$(MAKE) test
 
 update-manifests: ## Generate manifests/templates.json image metadata from chart values
 	@echo "Updating manifests/templates.json from template chart values..."

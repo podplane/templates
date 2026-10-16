@@ -50,6 +50,26 @@
         }
       },
       {
+        "image": "docker.io/library/busybox:1.37-glibc",
+        "digest": "sha256:66a6306db78bf2dbf3487f293aa8d6990d8e506fdffab9cc43fe422becf886e4",
+        "size": 2212583,
+        "platform": "linux/amd64",
+        "index": "sha256:42a9ff19af33811ee466b24c66384461d37c32dcc28d1d27d49b8aca816bd5ee",
+        "templates": {
+          "web": "reloader"
+        }
+      },
+      {
+        "image": "docker.io/library/busybox:1.37-glibc",
+        "digest": "sha256:d82c2ab94640ded77cf76514ce6a84870761105058a4a9e51b05a8a79be97a6c",
+        "size": 1901860,
+        "platform": "linux/arm64/v8",
+        "index": "sha256:42a9ff19af33811ee466b24c66384461d37c32dcc28d1d27d49b8aca816bd5ee",
+        "templates": {
+          "web": "reloader"
+        }
+      },
+      {
         "image": "ghcr.io/podplane/hello:latest",
         "digest": "sha256:69aa9294f55575b75468f6dff3573648ec16f4ece4830ba882262a622c187c02",
         "size": 3519509,

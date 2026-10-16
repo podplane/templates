@@ -16,5 +16,5 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Helm
         uses: azure/setup-helm@v4
-      - name: Check formatting, lint, and validate
+      - name: Check formatting, lint, validate, and test
         run: make precommit

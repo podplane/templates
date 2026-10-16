@@ -2,6 +2,9 @@
 # Copyright The Podplane Authors
 # SPDX-License-Identifier: Apache-2.0
 
+{{- /* gVisor reports no inotify events for kubelet's updates to projected
+volumes, so under gVisor a reloader sidecar signals certificate rotation. */ -}}
+{{- $reloader := and (eq .Values.certificates.server "sidecar") (eq .Values.runtimeClassName "gvisor") }}
 {{- if eq .Values.certificates.server "sidecar" }}
 ---
 apiVersion: v1
@@ -88,7 +91,12 @@ data:
           private_key:
             filename: /var/run/secrets/podplane/server-certificate/credential-bundle.pem
           watched_directory:
+            {{- if $reloader }}
+            # Reload when the certificate reloader renames a file here.
+            path: /var/run/podplane/certificate-reload
+            {{- else }}
             path: /var/run/secrets/podplane/server-certificate
+            {{- end }}
 {{- end }}
 ---
 apiVersion: apps/v1
@@ -106,9 +114,17 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: {{ printf "%s-container" (include "web.name" .) | quote }}
+        {{- if $reloader }}
+        # gVisor gives each container its own view of an emptyDir; share the
+        # reload volume so Envoy sees the reloader's renames.
+        dev.gvisor.spec.mount.certificate-reload.share: pod
+        dev.gvisor.spec.mount.certificate-reload.type: tmpfs
+        dev.gvisor.spec.mount.certificate-reload.options: rw,rprivate
+        {{- end }}
       labels:
         {{- include "web.selectorLabels" . | nindent 8 }}
     spec:
+      runtimeClassName: {{ .Values.runtimeClassName }}
       serviceAccountName: {{ include "web.serviceAccountName" . }}
       securityContext:
         {{- with omit .Values.podSecurityContext "fsGroup" }}
@@ -189,6 +205,57 @@ spec:
             - name: {{ include "web.name" . }}-envoy-config-volume
               mountPath: /etc/envoy
               readOnly: true
+            {{- if $reloader }}
+            - name: certificate-reload
+              mountPath: /var/run/podplane/certificate-reload
+              readOnly: true
+            {{- end }}
+        {{- end }}
+        {{- if $reloader }}
+        - name: {{ include "web.name" . }}-certificate-reloader
+          image: {{ .Values.images.reloader | quote }}
+          command:
+            - sh
+            - -c
+            - |
+              # Ask Envoy to reload the serving certificate when kubelet rotates
+              # it, by renaming a marker file into the directory Envoy watches.
+              # An empty hash means the read failed mid-update; retry next poll.
+              certificate=/var/run/secrets/podplane/server-certificate/credential-bundle.pem
+              last=
+              while true; do
+                sum=$(sha256sum "$certificate" | cut -d' ' -f1)
+                if [ -n "$sum" ] && [ "$sum" != "$last" ]; then
+                  echo "$sum" > /var/run/podplane/certificate-reload/.rotated.tmp &&
+                    mv /var/run/podplane/certificate-reload/.rotated.tmp /var/run/podplane/certificate-reload/rotated &&
+                    last=$sum
+                fi
+                sleep 5
+              done
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            # busybox runs as root by default; kubelet needs a numeric UID.
+            runAsUser: 65532
+            runAsGroup: 65532
+          # Measured at about 0.6MiB and 1m CPU: a shell sleeping between hashes.
+          resources:
+            requests:
+              cpu: "2m"
+              memory: "4Mi"
+            limits:
+              cpu: "20m"
+              memory: "16Mi"
+          volumeMounts:
+            - name: certificate-reload
+              mountPath: /var/run/podplane/certificate-reload
+            - name: {{ include "web.name" . }}-service-certificate
+              mountPath: /var/run/secrets/podplane/server-certificate
+              readOnly: true
         {{- end }}
       volumes:
         {{- range $index, $secret := .Values.secrets }}
@@ -226,4 +293,9 @@ spec:
         - name: {{ include "web.name" . }}-envoy-config-volume
           configMap:
             name: {{ include "web.name" . }}-envoy-configmap
+        {{- end }}
+        {{- if $reloader }}
+        - name: certificate-reload
+          emptyDir:
+            medium: Memory
         {{- end }}

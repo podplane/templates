@@ -29,6 +29,7 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      runtimeClassName: {{ .Values.runtimeClassName }}
       serviceAccountName: {{ include "worker.serviceAccountName" . }}
       terminationGracePeriodSeconds: {{ .Values.app.terminationGracePeriodSeconds }}
       securityContext:

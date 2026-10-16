@@ -20,11 +20,13 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | --- | --- | --- |
 | `images.app` | `ghcr.io/podplane/hello:latest` | App container image |
 | `images.envoy` | `docker.io/envoyproxy/envoy:distroless-v1.39.0` | Envoy sidecar image; aligned with Envoy Gateway where possible |
+| `images.reloader` | `docker.io/library/busybox:1.37-glibc` | Shell for the sidecar that tells Envoy to reload rotated serving certificates |
 | `app.env` | `{}` | Non-secret environment variables for the app container |
 | `app.port` | `8080` | App port, or an array with the primary port first and additional Service ports after it |
 | `route.hostname` | `""` | Optional external hostname for routing |
 | `route.path` | `/` | URL path prefix for routing |
 | `route.port` | `443` | External HTTPS port for the browser-facing route URL |
+| `runtimeClassName` | `gvisor` | Pod RuntimeClass, `gvisor` or `runc`; see [Runtime](#runtime) |
 | `serviceAccount.create` | `true` | Create the workload service account |
 | `serviceAccount.name` | `""` | Service account name; defaults to the release-derived app name |
 | `podSecurityContext` | non-root, RuntimeDefault seccomp, `fsGroup: 65532` | Pod-level security context |
@@ -42,15 +44,37 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `certificates.server` | `sidecar` | Service TLS handling mode (`sidecar` or `direct`) |
 | `certificates.client` | `false` | Project and mount a ServiceAccount SPIFFE identity and workload trust bundle |
 
+## Runtime
+
+Pods run in the gVisor sandbox by default. Set `runtimeClassName=runc` only when
+the application needs the host kernel directly, for compatibility or measured
+performance:
+
+```sh
+podplane deploy web --name example --image ghcr.io/example/app:latest --set runtimeClassName=runc
+```
+
+Under gVisor, applications must poll mounted files such as certificates and
+ConfigMaps to notice updates, and containers that share a Unix socket through an
+emptyDir need gVisor mount hints; the chart's Envoy and reloader sidecars
+already have them.
+
+This value only requests runc. Podplane admission rejects the Pods unless a
+cluster administrator has labelled the namespace
+`runtime.podplane.dev/runc: allowed`; the rejection appears in the ReplicaSet's
+events. The chart requires the `gvisor` and `runc` RuntimeClasses that managed
+Podplane clusters provide, and never omits its selection to fall back to the
+node's default runtime.
+
 ## Server certificate
 
 The template requests a serving certificate through a Kubernetes pod certificate projection. The request uses the `certificates.podplane.dev/workload` signer and identifies the release Service that the certificate must be valid for. The Podplane operator only signs the request when that Service selects the requesting Pod, preventing a workload from requesting a certificate for an unrelated Service.
 
 The private key remains local to the Pod and is never stored in a Kubernetes Secret or another API object. Kubernetes renews the certificate and atomically updates the projected files before it expires. No cert-manager resource is created, and applications do not need to persist certificate state between Pods.
 
-In the default `certificates.server=sidecar` mode, the public Service targets Envoy on port 8443 and Envoy proxies plain HTTP to the primary app port. Kubernetes mounts the private key and certificate chain together at `/var/run/secrets/podplane/server-certificate/credential-bundle.pem`. Envoy reads both from that file, while its filesystem SDS watches the projected directory and adopts rotated credentials without restarting the Pod. An invalid update leaves the previous valid TLS context active. The application receives plain HTTP from Envoy and does not need to load the serving certificate itself.
+In the default `certificates.server=sidecar` mode, the public Service targets Envoy on port 8443 and Envoy proxies plain HTTP to the primary app port. Kubernetes mounts the private key and certificate chain together at `/var/run/secrets/podplane/server-certificate/credential-bundle.pem`, and Envoy reads both from that file. Under gVisor, the default runtime, kubelet's updates to that projected volume produce no inotify events, so a small reloader sidecar hashes the file every five seconds and, when it changes, renames a marker file into a volume Envoy watches. Envoy then reloads the certificate without restarting the Pod, and an update it cannot load leaves the previous certificate in use. The reloader never copies the certificate or key. With `runtimeClassName=runc`, inotify sees kubelet's updates, so Envoy watches the projected directory directly and the chart omits the reloader. The application receives plain HTTP from Envoy and does not need to load the serving certificate itself.
 
-In `direct` mode, the Envoy sidecar and configuration are omitted and the public Service targets the primary app port. The same `credential-bundle.pem` is mounted into the application instead. The application must terminate TLS, watch the projected directory, and reload the credential after rotation. The serving projection does not include trust roots; those are mounted only when the optional client identity is enabled.
+In `direct` mode, the Envoy and reloader sidecars and configuration are omitted and the public Service targets the primary app port. The same `credential-bundle.pem` is mounted into the application instead. The application must terminate TLS and reload the credential after rotation by polling the file; under gVisor, inotify watches never fire for projected volume updates. The serving projection does not include trust roots; those are mounted only when the optional client identity is enabled.
 
 The chart's `BackendTLSPolicy` tells Envoy Gateway how to verify the serving certificate when it connects to the Service. It references the workload CA published by the operator as `ClusterTrustBundle/certificates.podplane.dev:workload:roots`, so the chart does not need to copy the CA into a namespace-local ConfigMap.
 
@@ -60,7 +84,7 @@ Set `certificates.client=true` when the application needs a workload identity fo
 
 The identity is a SPIFFE X.509-SVID with an ID in the form `spiffe://<trust-domain>/ns/<namespace>/sa/<service-account>`. For example, an `example-api` ServiceAccount in the `production` namespace receives an identity ending in `/ns/production/sa/example-api`. The private key and certificate chain are mounted together at `/var/run/secrets/podplane/client-certificate/credential-bundle.pem`, and the workload CA roots are mounted alongside them at `trust-bundle.pem`.
 
-Both files are projected directly into the Pod and are never backed by Kubernetes Secrets. Kubernetes rotates them automatically, so a long-running application must watch the projected directory and reload its identity and trust roots after updates. The application remains responsible for validating peer certificates and authorizing their SPIFFE identities.
+Both files are projected directly into the Pod and are never backed by Kubernetes Secrets. Kubernetes rotates them automatically, so a long-running application must poll the projected files and reload its identity and trust roots after updates; under gVisor, inotify watches never fire for projected volume updates. The application remains responsible for validating peer certificates and authorizing their SPIFFE identities.
 
 ## Additional Service ports
 

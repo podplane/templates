@@ -8,6 +8,8 @@ images:
   # possible to minimize cached images. Envoy Gateway's version takes priority
   # for maximum interoperability with its managed data plane.
   envoy: "docker.io/envoyproxy/envoy:distroless-v1.39.0"
+  # Shell for the sidecar that tells Envoy to reload rotated certificates.
+  reloader: "docker.io/library/busybox:1.37-glibc"
 app:
   env: {}
   port: 8080
@@ -19,6 +21,10 @@ serviceAccount:
   create: true
   name: ""
 secrets: []
+# RuntimeClass for the Pods: gvisor (sandboxed) or runc. runc requires the
+# namespace label runtime.podplane.dev/runc=allowed, which only a cluster
+# administrator can grant; this value does not grant it.
+runtimeClassName: gvisor
 # Restricted Pod Security defaults. For an image that must run as root, set
 # podSecurityContext.runAsNonRoot=false, plus containerSecurityContext.capabilities={}
 # (e.g. with --set-json) if it also needs the default Linux capabilities.
