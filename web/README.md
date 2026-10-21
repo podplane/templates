@@ -33,7 +33,7 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `containerSecurityContext` | restricted defaults | App container security context |
 | `secrets` | `[]` | SecretProviderBinding resources to render and mount |
 | `secrets[].bindingName` | required | SecretProviderBinding name; the operator generates a same-name SecretProviderClass |
-| `secrets[].providerName` | required | Cluster-local Podplane secrets provider name |
+| `secrets[].providerName` | omitted | Optional cluster-local Podplane secrets provider name; explicit names pin the provider |
 | `secrets[].mountPath` | required | Read-only path where secret files are mounted in the app container |
 | `secrets[].items` | required | Podplane-managed secret items to mount |
 | `secrets[].items[].key` | required | Podplane logical secret key and backend identifier |

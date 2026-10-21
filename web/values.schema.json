@@ -160,7 +160,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["bindingName", "providerName", "mountPath", "items"],
+        "required": ["bindingName", "mountPath", "items"],
         "properties": {
           "bindingName": {
             "type": "string",
@@ -174,7 +174,7 @@
             "minLength": 1,
             "maxLength": 32,
             "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
-            "description": "Cluster-local Podplane secrets provider name"
+            "description": "Optional cluster-local secrets provider name; omission uses the current cluster default"
           },
           "mountPath": {
             "type": "string",
