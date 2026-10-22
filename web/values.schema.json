@@ -204,6 +204,10 @@
                   "minLength": 1,
                   "maxLength": 255,
                   "description": "Optional mounted relative path inside mountPath; defaults to key"
+                },
+                "binary": {
+                  "type": "boolean",
+                  "description": "Decode base64 to the original bytes when true; only valid for Vault/OpenBao"
                 }
               }
             }

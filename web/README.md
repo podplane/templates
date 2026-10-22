@@ -38,6 +38,7 @@ By default, the application container listens for plain HTTP on `app.port` (defa
 | `secrets[].items` | required | Podplane-managed secret items to mount |
 | `secrets[].items[].key` | required | Podplane logical secret key and backend identifier |
 | `secrets[].items[].path` | defaults to `key` | Mounted relative path inside `mountPath` |
+| `secrets[].items[].binary` | omitted | Set `true` to decode Vault/OpenBao values written with `podplane secret --binary`. Omitted or `false` leaves decoding off. Other providers reject this field, even `false`; the operator checks the explicit or cluster-default provider. |
 | `secrets[].syncToKubernetesSecrets` | `[]` | Advanced opt-in sync to native Kubernetes Secrets |
 | `secrets[].syncToKubernetesSecrets[].labels` | `{}` | Labels copied to the synced Kubernetes Secret |
 | `secrets[].syncToKubernetesSecrets[].annotations` | `{}` | Annotations copied to the synced Kubernetes Secret |

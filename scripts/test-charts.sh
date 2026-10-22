@@ -36,6 +36,43 @@ for chart in web worker; do
     done
 done
 
+# Binary is presence-sensitive. Provider names are opaque references: the
+# operator, not the chart, validates the effective provider's capabilities.
+for chart in web worker; do
+    for provider in omitted custom-provider; do
+        args=(--set 'secrets[0].bindingName=test-secret' --set 'secrets[0].mountPath=/secrets' --set 'secrets[0].items[0].key=credential')
+        if [ "${provider}" != omitted ]; then
+            args+=(--set "secrets[0].providerName=${provider}")
+        fi
+        for binary in omitted true false; do
+            binary_args=()
+            if [ "${binary}" != omitted ]; then
+                binary_args+=(--set "secrets[0].items[0].binary=${binary}")
+            fi
+            binding=$(helm template test "${chart}" --kube-version "${KUBE_VERSION}" "${args[@]}" "${binary_args[@]}" |
+                yq e 'select(.kind == "SecretProviderBinding")' -)
+            expected_provider="${provider}"
+            [ "${provider}" != omitted ] || expected_provider=null
+            [ "$(yq e '.spec.providerName' - <<<"${binding}")" = "${expected_provider}" ] ||
+                fail "${chart}: provider ${provider} was not preserved"
+            if [ "${binary}" = omitted ]; then
+                [ "$(yq e '.spec.items[0] | has("binary")' - <<<"${binding}")" = false ] ||
+                    fail "${chart}: omitted binary was rendered (${provider})"
+            else
+                [ "$(yq e '.spec.items[0].binary | tag' - <<<"${binding}")" = '!!bool' ] &&
+                    [ "$(yq e '.spec.items[0].binary' - <<<"${binding}")" = "${binary}" ] ||
+                    fail "${chart}: binary ${binary} was not preserved (${provider})"
+            fi
+        done
+        for value in '"true"' '"false"' '1' '[]' '{}'; do
+            if helm template test "${chart}" --kube-version "${KUBE_VERSION}" "${args[@]}" \
+                --set-json "secrets[0].items[0].binary=${value}" >/dev/null 2>&1; then
+                fail "${chart}: nonboolean binary ${value} passed validation (${provider})"
+            fi
+        done
+    done
+done
+
 # web's sidecar mode must not wait for inotify events on the projected
 # certificate, which gVisor does not deliver for kubelet's updates. Envoy watches
 # a Pod-shared volume where the reloader sidecar renames a marker file instead.

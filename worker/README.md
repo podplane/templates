@@ -54,6 +54,8 @@ The default single replica uses the `Recreate` deployment strategy so an update 
 
 The `secrets` structure is the same as the Podplane `web` template. Secret mounts are read-only and non-secret configuration should use `app.env`.
 
+Set `secrets[].items[].binary: true` to decode Vault/OpenBao values written with `podplane secret --binary`. Omitted or `false` leaves decoding off. Other providers reject this field, even `false`; the operator checks the explicit or cluster-default provider.
+
 Image volumes require a Kubernetes cluster with the `ImageVolume` feature available (which is available by default in every Podplane cluster). Each image must be supplied under `images`, then referenced by key:
 
 ```yaml

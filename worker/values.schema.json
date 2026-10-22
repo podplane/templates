@@ -548,6 +548,10 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 255
+              },
+              "binary": {
+                "type": "boolean",
+                "description": "Decode base64 to the original bytes when true; only valid for Vault/OpenBao"
               }
             }
           }
